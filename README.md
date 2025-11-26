@@ -1,7 +1,6 @@
-# NationBuilder API Ruby Gem
+# NationBuilder Client v2
 
-[![CI](https://github.com/bmc/nationbuilder_api/actions/workflows/ci.yml/badge.svg)](https://github.com/bmc/nationbuilder_api/actions/workflows/ci.yml)
-[![Gem Version](https://badge.fury.io/rb/nationbuilder_api.svg)](https://badge.fury.io/rb/nationbuilder_api)
+[![CI](https://github.com/ebrett/nationbuilder-client-v2/actions/workflows/ci.yml/badge.svg)](https://github.com/ebrett/nationbuilder-client-v2/actions/workflows/ci.yml)
 
 A Ruby client for the NationBuilder API v2 with OAuth 2.0 PKCE authentication, flexible token storage, and seamless Rails integration.
 
@@ -14,13 +13,14 @@ A Ruby client for the NationBuilder API v2 with OAuth 2.0 PKCE authentication, f
 - **Comprehensive Error Handling**: Retryable error classification and detailed error messages
 - **Request/Response Logging**: Automatic credential sanitization for security
 - **Multi-Tenant Support**: Instance-based configuration for managing multiple accounts
+- **Net::HTTP Standard Library**: No external HTTP dependencies - uses Ruby's built-in Net::HTTP
 
 ## Installation
 
 Add this line to your application's Gemfile:
 
 ```ruby
-gem 'nationbuilder_api'
+gem 'nationbuilder-client-v2'
 ```
 
 And then execute:
@@ -32,7 +32,7 @@ bundle install
 Or install it yourself:
 
 ```bash
-gem install nationbuilder_api
+gem install nationbuilder-client-v2
 ```
 
 ## Quick Start
@@ -327,7 +327,7 @@ Test coverage target: 90%+
 
 ## Contributing
 
-1. Fork it (https://github.com/bmc/nationbuilder_api/fork)
+1. Fork it (https://github.com/ebrett/nationbuilder-client-v2/fork)
 2. Create your feature branch (`git checkout -b feature/my-feature`)
 3. Commit your changes (`git commit -am 'Add my feature'`)
 4. Push to the branch (`git push origin feature/my-feature`)

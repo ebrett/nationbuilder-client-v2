@@ -36,7 +36,8 @@ module NationbuilderApi
         client_id: config.client_id,
         redirect_uri: config.redirect_uri,
         scopes: scopes,
-        state: state
+        state: state,
+        oauth_base_url: oauth_base_url
       )
     end
 
@@ -54,7 +55,8 @@ module NationbuilderApi
         client_id: config.client_id,
         client_secret: config.client_secret,
         redirect_uri: config.redirect_uri,
-        code_verifier: code_verifier
+        code_verifier: code_verifier,
+        oauth_base_url: oauth_base_url
       )
 
       @token_adapter.store_token(identifier, token_data)
@@ -74,7 +76,8 @@ module NationbuilderApi
       new_token_data = OAuth.refresh_access_token(
         refresh_token: token_data[:refresh_token],
         client_id: config.client_id,
-        client_secret: config.client_secret
+        client_secret: config.client_secret,
+        oauth_base_url: oauth_base_url
       )
 
       @token_adapter.refresh_token(identifier, new_token_data)
@@ -134,6 +137,15 @@ module NationbuilderApi
     end
 
     private
+
+    # Extract OAuth base URL from API base URL
+    # Converts "https://nation.nationbuilder.com/api/v2" to "https://nation.nationbuilder.com"
+    def oauth_base_url
+      return nil unless config.base_url
+
+      # Remove API version path to get OAuth base URL
+      config.base_url.sub(%r{/api/v\d+/?$}, "")
+    end
 
     def build_configuration(options)
       config = Configuration.new

@@ -109,16 +109,16 @@ module NationbuilderApi
       end
 
       def serialize_scopes(scopes)
-        return scopes if scopes.is_a?(String)
-        JSON.dump(scopes)
+        # Return scopes as-is - let Rails ActiveRecord handle serialization
+        # The model should have: serialize :scopes, type: Array, coder: JSON
+        scopes
       end
 
       def deserialize_scopes(scopes)
+        # Rails ActiveRecord handles deserialization automatically
+        # Just return scopes as-is (will already be an Array from the model)
         return [] unless scopes
-        return scopes if scopes.is_a?(Array)
-        JSON.parse(scopes)
-      rescue JSON::ParserError
-        []
+        scopes.is_a?(Array) ? scopes : []
       end
     end
   end

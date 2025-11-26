@@ -33,7 +33,6 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
   # Runtime dependencies
-  spec.add_dependency "http", "~> 5.0"
   spec.add_dependency "base64", ">= 0.1.0" # Required for Ruby 3.4+
   spec.add_dependency "logger", ">= 1.4.0" # Required for Ruby 3.5+
 

@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
-require "http"
+require "net/http"
+require "uri"
 require "json"
 
 module NationbuilderApi
@@ -13,6 +14,34 @@ module NationbuilderApi
       @token_adapter = token_adapter
       @identifier = identifier
       @logger = logger || NationbuilderApi::Logger.new(config.logger, log_level: config.log_level)
+    end
+
+    # Wrapper class to maintain interface compatibility with http gem responses
+    class ResponseWrapper
+      attr_reader :body, :headers, :net_http_response
+
+      def initialize(net_http_response)
+        @net_http_response = net_http_response
+        @body = net_http_response.body
+        @headers = net_http_response.to_hash
+      end
+
+      def status
+        ResponseStatus.new(@net_http_response.code.to_i)
+      end
+    end
+
+    # Wrapper for response status to provide code attribute
+    class ResponseStatus
+      attr_reader :code
+
+      def initialize(code)
+        @code = code
+      end
+
+      def to_i
+        @code
+      end
     end
 
     # Make GET request
@@ -57,27 +86,57 @@ module NationbuilderApi
       @logger.log_response(response.status, duration_ms, headers: response.headers.to_h, body: response.body.to_s)
 
       handle_response(response, method, path)
-    rescue HTTP::Error, SocketError, OpenSSL::SSL::SSLError => e
+    rescue Net::OpenTimeout, Net::ReadTimeout, SocketError, OpenSSL::SSL::SSLError, Errno::ECONNREFUSED => e
       raise NetworkError.new("Network error for #{method.upcase} #{path}: #{e.message}", response: nil)
     end
 
     def execute_request(method, url, headers:, params:, body:)
-      client = HTTP.timeout(config.timeout).headers(headers)
+      uri = URI(url)
 
-      case method
+      # Add query parameters for GET requests
+      if method == :get && params.any?
+        uri.query = URI.encode_www_form(params)
+      end
+
+      # Create and configure HTTP client
+      http = Net::HTTP.new(uri.host, uri.port)
+      http.use_ssl = true
+      http.read_timeout = config.timeout
+      http.open_timeout = config.timeout
+
+      # Disable SSL verification in development/test environments
+      if defined?(Rails) && (Rails.env.development? || Rails.env.test?)
+        http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+      end
+
+      # Create request object based on method
+      request = case method
       when :get
-        client.get(url, params: params)
+        Net::HTTP::Get.new(uri)
       when :post
-        client.post(url, json: body)
+        Net::HTTP::Post.new(uri)
       when :patch
-        client.patch(url, json: body)
+        Net::HTTP::Patch.new(uri)
       when :put
-        client.put(url, json: body)
+        Net::HTTP::Put.new(uri)
       when :delete
-        client.delete(url)
+        Net::HTTP::Delete.new(uri)
       else
         raise ArgumentError, "Unsupported HTTP method: #{method}"
       end
+
+      # Set headers
+      headers.each { |key, value| request[key] = value }
+
+      # Set body for POST/PATCH/PUT requests
+      if body && [:post, :patch, :put].include?(method)
+        request.body = JSON.generate(body)
+        request["Content-Type"] = "application/json"
+      end
+
+      # Execute request and wrap response
+      response = http.request(request)
+      ResponseWrapper.new(response)
     end
 
     def build_url(path)
@@ -117,7 +176,8 @@ module NationbuilderApi
       new_token_data = OAuth.refresh_access_token(
         refresh_token: refresh_token,
         client_id: config.client_id,
-        client_secret: config.client_secret
+        client_secret: config.client_secret,
+        oauth_base_url: oauth_base_url
       )
 
       @token_adapter.refresh_token(@identifier, new_token_data)
@@ -125,6 +185,13 @@ module NationbuilderApi
       # Refresh token expired or invalid - delete stored token
       @token_adapter.delete_token(@identifier)
       raise
+    end
+
+    # Extract OAuth base URL from API base URL
+    # Converts "https://nation.nationbuilder.com/api/v2" to "https://nation.nationbuilder.com"
+    def oauth_base_url
+      return nil unless config.base_url
+      config.base_url.sub(%r{/api/v\d+/?$}, "")
     end
 
     def handle_response(response, method, path)

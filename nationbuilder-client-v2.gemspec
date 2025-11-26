@@ -3,22 +3,22 @@
 require_relative "lib/nationbuilder_api/version"
 
 Gem::Specification.new do |spec|
-  spec.name = "nationbuilder_api"
+  spec.name = "nationbuilder-client-v2"
   spec.version = NationbuilderApi::VERSION
   spec.authors = ["Brett McHargue"]
   spec.email = ["ebrett@users.noreply.github.com"]
 
   spec.summary = "Ruby client for NationBuilder API v2 with OAuth 2.0 PKCE authentication"
   spec.description = "A Ruby gem providing OAuth 2.0 authentication, flexible token storage, and HTTP client infrastructure for the NationBuilder API v2. Includes seamless Rails integration and comprehensive error handling."
-  spec.homepage = "https://github.com/bmc/nationbuilder_api"
+  spec.homepage = "https://github.com/ebrett/nationbuilder-client-v2"
   spec.license = "MIT"
   spec.required_ruby_version = ">= 2.7.0"
 
   spec.metadata["homepage_uri"] = spec.homepage
-  spec.metadata["source_code_uri"] = "https://github.com/bmc/nationbuilder_api"
-  spec.metadata["changelog_uri"] = "https://github.com/bmc/nationbuilder_api/blob/main/CHANGELOG.md"
-  spec.metadata["bug_tracker_uri"] = "https://github.com/bmc/nationbuilder_api/issues"
-  spec.metadata["documentation_uri"] = "https://rubydoc.info/gems/nationbuilder_api"
+  spec.metadata["source_code_uri"] = "https://github.com/ebrett/nationbuilder-client-v2"
+  spec.metadata["changelog_uri"] = "https://github.com/ebrett/nationbuilder-client-v2/blob/main/CHANGELOG.md"
+  spec.metadata["bug_tracker_uri"] = "https://github.com/ebrett/nationbuilder-client-v2/issues"
+  spec.metadata["documentation_uri"] = "https://rubydoc.info/gems/nationbuilder-client-v2"
 
   # Specify which files should be added to the gem when it is released.
   gemspec = File.basename(__FILE__)

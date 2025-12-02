@@ -188,10 +188,14 @@ module NationbuilderApi
     end
 
     # Extract OAuth base URL from API base URL
+    # Converts "https://api.nationbuilder.com/v2" to "https://api.nationbuilder.com"
     # Converts "https://nation.nationbuilder.com/api/v2" to "https://nation.nationbuilder.com"
     def oauth_base_url
       return nil unless config.base_url
-      config.base_url.sub(%r{/api/v\d+/?$}, "")
+
+      # Remove API version path to get OAuth base URL
+      # Handles both /api/v2 and /v2 patterns
+      config.base_url.sub(%r{(/api)?/v\d+/?$}, "")
     end
 
     def handle_response(response, method, path)

@@ -73,7 +73,7 @@ RSpec.describe NationbuilderApi::Client do
     it "generates authorization URL" do
       result = client.authorize_url(scopes: ["people:read"])
 
-      expect(result[:url]).to include("https://nationbuilder.com/oauth/authorize")
+      expect(result[:url]).to include("https://api.nationbuilder.com/oauth/authorize")
       expect(result[:url]).to include("client_id=client_123")
       expect(result[:code_verifier]).to be_a(String)
       expect(result[:state]).to be_a(String)
@@ -97,7 +97,7 @@ RSpec.describe NationbuilderApi::Client do
         scope: "people:read"
       }.to_json
 
-      stub_request(:post, "https://nationbuilder.com/oauth/token")
+      stub_request(:post, "https://api.nationbuilder.com/oauth/token")
         .to_return(status: 200, body: token_response, headers: {"Content-Type" => "application/json"})
 
       result = client.exchange_code_for_token(code: "auth_code", code_verifier: "verifier_123")
@@ -134,7 +134,7 @@ RSpec.describe NationbuilderApi::Client do
         scope: "people:read"
       }.to_json
 
-      stub_request(:post, "https://nationbuilder.com/oauth/token")
+      stub_request(:post, "https://api.nationbuilder.com/oauth/token")
         .to_return(status: 200, body: token_response, headers: {"Content-Type" => "application/json"})
 
       result = client.refresh_token

@@ -25,7 +25,7 @@ RSpec.describe "OAuth Flow Integration" do
         scope: "people:read"
       }.to_json
 
-      stub_request(:post, "https://nationbuilder.com/oauth/token")
+      stub_request(:post, "https://api.nationbuilder.com/oauth/token")
         .with(body: hash_including("code" => "auth_code_from_callback"))
         .to_return(status: 200, body: token_response, headers: {"Content-Type" => "application/json"})
 
@@ -70,7 +70,7 @@ RSpec.describe "OAuth Flow Integration" do
         scope: "people:read"
       }.to_json
 
-      stub_request(:post, "https://nationbuilder.com/oauth/token")
+      stub_request(:post, "https://api.nationbuilder.com/oauth/token")
         .with(body: hash_including("grant_type" => "refresh_token"))
         .to_return(status: 200, body: refresh_response, headers: {"Content-Type" => "application/json"})
 

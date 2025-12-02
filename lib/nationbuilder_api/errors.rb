@@ -99,6 +99,9 @@ module NationbuilderApi
       # Try Retry-After header
       if response.respond_to?(:headers)
         retry_after_header = response.headers["Retry-After"] || response.headers["retry-after"]
+        # Net::HTTP returns headers as arrays, extract first value
+        retry_after_header = retry_after_header.first if retry_after_header.is_a?(Array)
+
         if retry_after_header
           # Could be seconds (integer) or HTTP date
           return Time.now + retry_after_header.to_i if /^\d+$/.match?(retry_after_header)
@@ -111,6 +114,7 @@ module NationbuilderApi
 
         # Try X-RateLimit-Reset header (Unix timestamp)
         reset_header = response.headers["X-RateLimit-Reset"] || response.headers["x-ratelimit-reset"]
+        reset_header = reset_header.first if reset_header.is_a?(Array)
         return Time.at(reset_header.to_i) if reset_header
       end
 

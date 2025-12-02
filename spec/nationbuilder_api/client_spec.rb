@@ -42,6 +42,29 @@ RSpec.describe NationbuilderApi::Client do
       client = described_class.new(**valid_config, identifier: "user_456")
       expect(client.identifier).to eq("user_456")
     end
+
+    it "accepts custom adapter with valid interface" do
+      custom_adapter = double("CustomAdapter")
+      allow(custom_adapter).to receive(:respond_to?).with(:store_token).and_return(true)
+      allow(custom_adapter).to receive(:respond_to?).with(:retrieve_token).and_return(true)
+      allow(custom_adapter).to receive(:respond_to?).with(:refresh_token).and_return(true)
+      allow(custom_adapter).to receive(:respond_to?).with(:delete_token).and_return(true)
+
+      client = described_class.new(**valid_config, token_adapter: custom_adapter)
+      expect(client.token_adapter).to eq(custom_adapter)
+    end
+
+    it "rejects custom adapter missing required methods" do
+      invalid_adapter = double("InvalidAdapter")
+      allow(invalid_adapter).to receive(:respond_to?).with(:store_token).and_return(true)
+      allow(invalid_adapter).to receive(:respond_to?).with(:retrieve_token).and_return(false)
+      allow(invalid_adapter).to receive(:respond_to?).with(:refresh_token).and_return(false)
+      allow(invalid_adapter).to receive(:respond_to?).with(:delete_token).and_return(true)
+
+      expect {
+        described_class.new(**valid_config, token_adapter: invalid_adapter)
+      }.to raise_error(NationbuilderApi::ConfigurationError, /missing required methods: retrieve_token, refresh_token/)
+    end
   end
 
   describe "#authorize_url" do

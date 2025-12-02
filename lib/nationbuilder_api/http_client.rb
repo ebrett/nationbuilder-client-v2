@@ -103,11 +103,8 @@ module NationbuilderApi
       http.use_ssl = true
       http.read_timeout = config.timeout
       http.open_timeout = config.timeout
-
-      # Disable SSL verification in development/test environments
-      if defined?(Rails) && (Rails.env.development? || Rails.env.test?)
-        http.verify_mode = OpenSSL::SSL::VERIFY_NONE
-      end
+      # SSL verification is always enabled for security
+      # Use OpenSSL::SSL::VERIFY_PEER by default (Ruby's default)
 
       # Create request object based on method
       request = case method

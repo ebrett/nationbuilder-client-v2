@@ -3,6 +3,7 @@
 require "net/http"
 require "uri"
 require "json"
+require "monitor"
 
 module NationbuilderApi
   # HTTP client with automatic authentication and error handling
@@ -14,6 +15,7 @@ module NationbuilderApi
       @token_adapter = token_adapter
       @identifier = identifier
       @logger = logger || NationbuilderApi::Logger.new(config.logger, log_level: config.log_level)
+      @token_refresh_mutex = Monitor.new
     end
 
     # Wrapper class to maintain interface compatibility with http gem responses
@@ -165,7 +167,17 @@ module NationbuilderApi
       token_data = @token_adapter.retrieve_token(@identifier)
       return unless token_data
 
-      if OAuth.token_expired?(token_data[:expires_at])
+      # Fast path: check if token is still fresh without locking
+      return unless OAuth.token_expired?(token_data[:expires_at])
+
+      # Slow path: acquire lock and double-check before refreshing
+      @token_refresh_mutex.synchronize do
+        # Double-check token expiry inside mutex to avoid race condition
+        # Another thread may have already refreshed the token
+        token_data = @token_adapter.retrieve_token(@identifier)
+        return unless token_data
+        return unless OAuth.token_expired?(token_data[:expires_at])
+
         refresh_token!(token_data[:refresh_token])
       end
     end

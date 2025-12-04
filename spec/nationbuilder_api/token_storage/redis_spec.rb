@@ -53,8 +53,6 @@ RSpec.describe NationbuilderApi::TokenStorage::Redis do
     end
 
     it "serializes Time objects to ISO8601 strings" do
-      key = "nationbuilder_api:tokens:#{identifier}"
-
       expect(redis_client).to receive(:set) do |_, serialized|
         data = JSON.parse(serialized)
         expect(data["expires_at"]).to match(/^\d{4}-\d{2}-\d{2}T/)

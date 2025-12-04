@@ -209,7 +209,7 @@ RSpec.describe NationbuilderApi::TokenStorage::ActiveRecord do
       allow(Object).to receive(:const_defined?).with("::NationbuilderApiToken").and_return(false)
 
       expect {
-        adapter = described_class.new
+        described_class.new
       }.to raise_error(NationbuilderApi::ConfigurationError, /ActiveRecord token model not found/)
     end
 

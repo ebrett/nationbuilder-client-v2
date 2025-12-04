@@ -12,7 +12,8 @@ module NationbuilderApi
       /secret/i,
       /password/i,
       /key/i,
-      /authorization/i
+      /authorization/i,
+      /^code$/i  # OAuth authorization code parameter
     ].freeze
 
     def initialize(logger = nil, log_level: :info)
@@ -39,7 +40,8 @@ module NationbuilderApi
 
     # Log HTTP request
     def log_request(method, url, headers: {}, body: nil)
-      message = "[NationbuilderApi] #{method.upcase} #{url}"
+      sanitized_url = sanitize_url(url)
+      message = "[NationbuilderApi] #{method.upcase} #{sanitized_url}"
       info(message)
 
       if @log_level == :debug
@@ -86,6 +88,29 @@ module NationbuilderApi
       else
         body.to_s
       end
+    end
+
+    # Sanitize sensitive query parameters from URL
+    def sanitize_url(url)
+      return url unless url.include?("?")
+
+      uri = URI.parse(url)
+      return url unless uri.query
+
+      # Parse query parameters
+      params = URI.decode_www_form(uri.query)
+
+      # Filter sensitive parameters
+      sanitized_params = params.map do |key, value|
+        [key, sensitive_key?(key) ? FILTERED : value]
+      end
+
+      # Rebuild URL with sanitized parameters
+      uri.query = URI.encode_www_form(sanitized_params)
+      uri.to_s
+    rescue URI::InvalidURIError
+      # If URL parsing fails, return original (better to log than crash)
+      url
     end
 
     private

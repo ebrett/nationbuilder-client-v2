@@ -78,6 +78,56 @@ RSpec.describe NationbuilderApi::Logger do
       expect(log_content).to include("[FILTERED]")
       expect(log_content).not_to include("secret")
     end
+
+    it "sanitizes sensitive query parameters in URL" do
+      url = "https://api.example.com/oauth/token?client_secret=secret123&code=auth456&grant_type=authorization_code"
+      logger.log_request(:post, url)
+
+      output.rewind
+      log_content = output.read
+
+      expect(log_content).to include("POST")
+      # Check for URL-encoded version of [FILTERED]
+      expect(log_content).to include("%5BFILTERED%5D")
+      expect(log_content).to include("grant_type=authorization_code")
+      expect(log_content).not_to include("secret123")
+      expect(log_content).not_to include("auth456")
+    end
+
+    it "sanitizes refresh_token in URL" do
+      url = "https://api.example.com/oauth/token?refresh_token=refresh123&grant_type=refresh_token"
+      logger.log_request(:post, url)
+
+      output.rewind
+      log_content = output.read
+
+      # Check for URL-encoded version of [FILTERED]
+      expect(log_content).to include("%5BFILTERED%5D")
+      expect(log_content).not_to include("refresh123")
+    end
+
+    it "sanitizes access_token in URL" do
+      url = "https://api.example.com/people?access_token=token123"
+      logger.log_request(:get, url)
+
+      output.rewind
+      log_content = output.read
+
+      # Check for URL-encoded version of [FILTERED]
+      expect(log_content).to include("%5BFILTERED%5D")
+      expect(log_content).not_to include("token123")
+    end
+
+    it "handles URLs without query parameters" do
+      url = "https://api.example.com/people"
+      logger.log_request(:get, url)
+
+      output.rewind
+      log_content = output.read
+
+      expect(log_content).to include("GET")
+      expect(log_content).to include("https://api.example.com/people")
+    end
   end
 
   describe "#log_response" do

@@ -141,11 +141,8 @@ module NationbuilderApi
         http.use_ssl = true
         http.read_timeout = 30
         http.open_timeout = 30
-
-        # Disable SSL verification in development/test environments
-        if defined?(Rails) && (Rails.env.development? || Rails.env.test?)
-          http.verify_mode = OpenSSL::SSL::VERIFY_NONE
-        end
+        # SSL verification is always enabled for security
+        # Use OpenSSL::SSL::VERIFY_PEER by default (Ruby's default)
 
         request = Net::HTTP::Post.new(uri)
         request["Content-Type"] = "application/x-www-form-urlencoded"

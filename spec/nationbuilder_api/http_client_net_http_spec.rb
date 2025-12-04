@@ -119,7 +119,7 @@ RSpec.describe NationbuilderApi::HttpClient, "Net::HTTP implementation" do
   end
 
   describe "SSL verification configuration" do
-    it "disables SSL verification in Rails development environment" do
+    it "always uses SSL verification regardless of Rails environment" do
       # Mock Rails environment as development
       rails_double = double("Rails", env: double("env", development?: true, test?: false))
       stub_const("Rails", rails_double)
@@ -143,64 +143,32 @@ RSpec.describe NationbuilderApi::HttpClient, "Net::HTTP implementation" do
       # Execute request
       http_client.get("/people")
 
-      # Verify SSL verification was disabled
-      expect(http_instance).to have_received(:verify_mode=).with(OpenSSL::SSL::VERIFY_NONE)
-    end
-
-    it "disables SSL verification in Rails test environment" do
-      # Mock Rails environment as test
-      rails_double = double("Rails", env: double("env", development?: false, test?: true))
-      stub_const("Rails", rails_double)
-
-      # Mock Net::HTTP to verify SSL configuration
-      http_instance = instance_double(Net::HTTP)
-      allow(Net::HTTP).to receive(:new).and_return(http_instance)
-      allow(http_instance).to receive(:use_ssl=)
-      allow(http_instance).to receive(:read_timeout=)
-      allow(http_instance).to receive(:open_timeout=)
-      allow(http_instance).to receive(:verify_mode=)
-
-      # Create a mock request and response
-      request_double = instance_double(Net::HTTP::Get)
-      allow(Net::HTTP::Get).to receive(:new).and_return(request_double)
-      allow(request_double).to receive(:[]=)
-
-      response_double = instance_double(Net::HTTPSuccess, code: "200", body: '{"data": []}', to_hash: {"content-type" => ["application/json"]})
-      allow(http_instance).to receive(:request).and_return(response_double)
-
-      # Execute request
-      http_client.get("/people")
-
-      # Verify SSL verification was disabled
-      expect(http_instance).to have_received(:verify_mode=).with(OpenSSL::SSL::VERIFY_NONE)
-    end
-
-    it "does not disable SSL verification in Rails production environment" do
-      # Mock Rails environment as production
-      rails_double = double("Rails", env: double("env", development?: false, test?: false, production?: true))
-      stub_const("Rails", rails_double)
-
-      # Mock Net::HTTP to verify SSL configuration
-      http_instance = instance_double(Net::HTTP)
-      allow(Net::HTTP).to receive(:new).and_return(http_instance)
-      allow(http_instance).to receive(:use_ssl=)
-      allow(http_instance).to receive(:read_timeout=)
-      allow(http_instance).to receive(:open_timeout=)
-      allow(http_instance).to receive(:verify_mode=)
-
-      # Create a mock request and response
-      request_double = instance_double(Net::HTTP::Get)
-      allow(Net::HTTP::Get).to receive(:new).and_return(request_double)
-      allow(request_double).to receive(:[]=)
-
-      response_double = instance_double(Net::HTTPSuccess, code: "200", body: '{"data": []}', to_hash: {"content-type" => ["application/json"]})
-      allow(http_instance).to receive(:request).and_return(response_double)
-
-      # Execute request
-      http_client.get("/people")
-
-      # Verify SSL verification was NOT disabled (verify_mode= should not be called)
+      # Verify SSL verification was NOT explicitly disabled
+      # Ruby's Net::HTTP defaults to VERIFY_PEER, so we don't set verify_mode at all
       expect(http_instance).not_to have_received(:verify_mode=)
+    end
+
+    it "enables SSL for HTTPS requests" do
+      # Mock Net::HTTP to verify SSL is enabled
+      http_instance = instance_double(Net::HTTP)
+      allow(Net::HTTP).to receive(:new).and_return(http_instance)
+      allow(http_instance).to receive(:use_ssl=)
+      allow(http_instance).to receive(:read_timeout=)
+      allow(http_instance).to receive(:open_timeout=)
+
+      # Create a mock request and response
+      request_double = instance_double(Net::HTTP::Get)
+      allow(Net::HTTP::Get).to receive(:new).and_return(request_double)
+      allow(request_double).to receive(:[]=)
+
+      response_double = instance_double(Net::HTTPSuccess, code: "200", body: '{"data": []}', to_hash: {"content-type" => ["application/json"]})
+      allow(http_instance).to receive(:request).and_return(response_double)
+
+      # Execute request
+      http_client.get("/people")
+
+      # Verify SSL was enabled
+      expect(http_instance).to have_received(:use_ssl=).with(true)
     end
   end
 end

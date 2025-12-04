@@ -12,7 +12,7 @@ Gem::Specification.new do |spec|
   spec.description = "A Ruby gem providing OAuth 2.0 authentication, flexible token storage, and HTTP client infrastructure for the NationBuilder API v2. Includes seamless Rails integration and comprehensive error handling."
   spec.homepage = "https://github.com/ebrett/nationbuilder-client-v2"
   spec.license = "MIT"
-  spec.required_ruby_version = ">= 2.7.0"
+  spec.required_ruby_version = ">= 3.2.0"
 
   spec.metadata["homepage_uri"] = spec.homepage
   spec.metadata["source_code_uri"] = "https://github.com/ebrett/nationbuilder-client-v2"

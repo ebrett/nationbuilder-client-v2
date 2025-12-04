@@ -56,7 +56,8 @@ module NationbuilderApi
         client_secret: config.client_secret,
         redirect_uri: config.redirect_uri,
         code_verifier: code_verifier,
-        oauth_base_url: oauth_base_url
+        oauth_base_url: oauth_base_url,
+        logger: @logger
       )
 
       @token_adapter.store_token(identifier, token_data)
@@ -77,7 +78,8 @@ module NationbuilderApi
         refresh_token: token_data[:refresh_token],
         client_id: config.client_id,
         client_secret: config.client_secret,
-        oauth_base_url: oauth_base_url
+        oauth_base_url: oauth_base_url,
+        logger: @logger
       )
 
       @token_adapter.refresh_token(identifier, new_token_data)

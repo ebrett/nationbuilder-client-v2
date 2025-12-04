@@ -5,7 +5,7 @@ require "digest/sha2"
 require "base64"
 require "uri"
 require "json"
-require "net/http"
+require_relative "http_request"
 
 module NationbuilderApi
   # OAuth 2.0 with PKCE implementation
@@ -75,8 +75,9 @@ module NationbuilderApi
       # @param redirect_uri [String] OAuth callback URL (must match authorization)
       # @param code_verifier [String] PKCE code verifier
       # @param oauth_base_url [String, nil] Base URL for OAuth endpoints (e.g., "https://yournation.nationbuilder.com")
+      # @param logger [Logger, nil] Logger instance for request/response logging
       # @return [Hash] Token data
-      def exchange_code_for_token(code:, client_id:, client_secret:, redirect_uri:, code_verifier:, oauth_base_url: nil)
+      def exchange_code_for_token(code:, client_id:, client_secret:, redirect_uri:, code_verifier:, oauth_base_url: nil, logger: nil)
         params = {
           grant_type: "authorization_code",
           code: code,
@@ -88,7 +89,7 @@ module NationbuilderApi
 
         # Use nation-specific OAuth URL if provided, otherwise fall back to default
         token_url = oauth_base_url ? "#{oauth_base_url}/oauth/token" : TOKEN_URL
-        response = make_token_request(token_url, params)
+        response = make_token_request(token_url, params, logger: logger)
 
         parse_token_response(response)
       end
@@ -99,8 +100,9 @@ module NationbuilderApi
       # @param client_id [String] OAuth client ID
       # @param client_secret [String] OAuth client secret
       # @param oauth_base_url [String, nil] Base URL for OAuth endpoints (e.g., "https://yournation.nationbuilder.com")
+      # @param logger [Logger, nil] Logger instance for request/response logging
       # @return [Hash] Token data
-      def refresh_access_token(refresh_token:, client_id:, client_secret:, oauth_base_url: nil)
+      def refresh_access_token(refresh_token:, client_id:, client_secret:, oauth_base_url: nil, logger: nil)
         params = {
           grant_type: "refresh_token",
           refresh_token: refresh_token,
@@ -110,7 +112,7 @@ module NationbuilderApi
 
         # Use nation-specific OAuth URL if provided, otherwise fall back to default
         token_url = oauth_base_url ? "#{oauth_base_url}/oauth/token" : TOKEN_URL
-        response = make_token_request(token_url, params)
+        response = make_token_request(token_url, params, logger: logger)
 
         parse_token_response(response)
       end
@@ -128,27 +130,9 @@ module NationbuilderApi
       private
 
       # Make HTTP POST request for token exchange
-      # Uses Net::HTTP with SSL configuration
-      def http_client
-        # This method name is kept for compatibility but now creates a Net::HTTP request
-        # The actual POST is done in the make_token_request method
-        self
-      end
-
-      def make_token_request(url, params)
-        uri = URI(url)
-        http = Net::HTTP.new(uri.host, uri.port)
-        http.use_ssl = true
-        http.read_timeout = 30
-        http.open_timeout = 30
-        # SSL verification is always enabled for security
-        # Use OpenSSL::SSL::VERIFY_PEER by default (Ruby's default)
-
-        request = Net::HTTP::Post.new(uri)
-        request["Content-Type"] = "application/x-www-form-urlencoded"
-        request.set_form_data(params)
-
-        http.request(request)
+      # Uses shared HttpRequest module for consistent logging and error handling
+      def make_token_request(url, params, logger: nil)
+        HttpRequest.post_form(url, params, timeout: 30, logger: logger)
       end
 
       def parse_token_response(response)

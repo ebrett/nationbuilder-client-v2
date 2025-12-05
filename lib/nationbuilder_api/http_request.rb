@@ -21,9 +21,7 @@ module NationbuilderApi
         start_time = Time.now
 
         # Log request if logger provided
-        if logger
-          logger.log_request(:post, url, headers: {"Content-Type" => "application/x-www-form-urlencoded"}, body: params)
-        end
+        logger&.log_request(:post, url, headers: {"Content-Type" => "application/x-www-form-urlencoded"}, body: params)
 
         http = Net::HTTP.new(uri.host, uri.port)
         http.use_ssl = true

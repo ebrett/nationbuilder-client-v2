@@ -99,24 +99,68 @@ token_data = client.exchange_code_for_token(
 ### 3. Make Authenticated API Requests
 
 ```ruby
-# Tokens are automatically refreshed when needed
-people = client.get('/people')
+# Using resource methods (recommended)
+person = client.people.show(123)
+taggings = client.people.taggings(123)
+rsvps = client.people.rsvps(123)
+activities = client.people.activities(123)
+
+# Or make direct API calls
+people = client.get('/api/v1/people')
 
 # Create a new person
-person = client.post('/people', body: {
-  first_name: 'John',
-  last_name: 'Doe',
-  email: 'john.doe@example.com'
+person = client.post('/api/v1/people', body: {
+  person: {
+    first_name: 'John',
+    last_name: 'Doe',
+    email: 'john.doe@example.com'
+  }
 })
 
 # Update a person
-client.patch("/people/#{person[:id]}", body: {
-  first_name: 'Jane'
+client.patch("/api/v1/people/#{person[:id]}", body: {
+  person: { first_name: 'Jane' }
 })
 
 # Delete a person
-client.delete("/people/#{person[:id]}")
+client.delete("/api/v1/people/#{person[:id]}")
 ```
+
+## API Resources
+
+### People Resource
+
+The People resource provides convenient methods for working with NationBuilder people data using the V2 API with JSON:API format:
+
+```ruby
+# Fetch person details (V2 API - JSON:API format)
+person = client.people.show(123)
+# => { data: { type: "person", id: "123", attributes: { first_name: "John", ... } } }
+
+# Fetch person with taggings sideloaded
+person_with_tags = client.people.show(123, include_taggings: true)
+# => { data: { ... }, included: [{ type: "tagging", ... }] }
+
+# Get person's taggings/subscriptions (V2 API - JSON:API format)
+# This is a convenience method that calls show() with include_taggings: true
+taggings = client.people.taggings(123)
+# => { data: { ... }, included: [{ type: "tagging", ... }] }
+
+# Get person's event RSVPs (V2 API - JSON:API format)
+rsvps = client.people.rsvps(123)
+# => { data: [...], included: [... event details ...] }
+
+# Exclude event details from RSVP response
+rsvps = client.people.rsvps(123, include_event: false)
+# => { data: [...] }
+
+# Get person's recent activities (V1 API - will migrate to V2 when available)
+# Note: This endpoint may not be available on all NationBuilder accounts
+activities = client.people.activities(123)
+# => { results: [{ type: "email_sent", created_at: "...", ... }] }
+```
+
+**Note**: The People resource uses the V2 API by default, which returns data in JSON:API format. Only the `activities()` method still uses V1 as the V2 equivalent is not yet available.
 
 ## Configuration Options
 
@@ -339,11 +383,11 @@ The gem is available as open source under the terms of the [MIT License](https:/
 
 ## Version
 
-Current version: **0.1.0** (Phase 1 - Core Infrastructure)
+Current version: **0.2.0** (Phase 2 - People API Resource)
 
 ### Roadmap
 
-- **Phase 1 (v0.1.0)** - OAuth, token management, HTTP client infrastructure
-- **Phase 2 (v0.2.0)** - API resources (People, Donations, Events, Tags)
-- **Phase 3 (v0.3.0)** - Pagination, rate limiting, webhooks, batch operations
-- **Phase 4 (v1.0.0)** - Rails generators, comprehensive docs, testing utilities
+- **Phase 1 (v0.1.0)** ✅ OAuth, token management, HTTP client infrastructure
+- **Phase 2 (v0.2.0)** ✅ People API resource (show, taggings, rsvps, activities)
+- **Phase 3 (v0.3.0)** - Additional resources (Donations, Events, Tags), pagination, rate limiting
+- **Phase 4 (v1.0.0)** - Webhooks, batch operations, Rails generators, comprehensive docs, testing utilities

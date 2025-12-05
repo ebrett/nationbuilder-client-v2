@@ -18,6 +18,12 @@ module NationbuilderApi
     autoload :ActiveRecord, "nationbuilder_api/token_storage/active_record"
   end
 
+  # API resources
+  module Resources
+    autoload :Base, "nationbuilder_api/resources/base"
+    autoload :People, "nationbuilder_api/resources/people"
+  end
+
   # OAuth scope constants
   SCOPE_PEOPLE_READ = "people:read"
   SCOPE_PEOPLE_WRITE = "people:write"

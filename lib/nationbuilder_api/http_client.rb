@@ -186,7 +186,8 @@ module NationbuilderApi
         refresh_token: refresh_token,
         client_id: config.client_id,
         client_secret: config.client_secret,
-        oauth_base_url: oauth_base_url
+        oauth_base_url: oauth_base_url,
+        logger: @logger
       )
 
       @token_adapter.refresh_token(@identifier, new_token_data)

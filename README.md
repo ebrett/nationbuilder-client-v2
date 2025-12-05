@@ -130,18 +130,23 @@ client.delete("/api/v1/people/#{person[:id]}")
 
 ### People Resource
 
-The People resource provides convenient methods for working with NationBuilder people data:
+The People resource provides convenient methods for working with NationBuilder people data using the V2 API with JSON:API format:
 
 ```ruby
-# Fetch person details
+# Fetch person details (V2 API - JSON:API format)
 person = client.people.show(123)
-# => { person: { id: 123, first_name: "John", last_name: "Doe", email: "john@example.com", ... } }
+# => { data: { type: "person", id: "123", attributes: { first_name: "John", ... } } }
 
-# Get person's taggings/subscriptions
+# Fetch person with taggings sideloaded
+person_with_tags = client.people.show(123, include_taggings: true)
+# => { data: { ... }, included: [{ type: "tagging", ... }] }
+
+# Get person's taggings/subscriptions (V2 API - JSON:API format)
+# This is a convenience method that calls show() with include_taggings: true
 taggings = client.people.taggings(123)
-# => { results: [{ tag: "volunteer", ... }, { tag: "donor", ... }] }
+# => { data: { ... }, included: [{ type: "tagging", ... }] }
 
-# Get person's event RSVPs (uses V2 API with JSON:API format)
+# Get person's event RSVPs (V2 API - JSON:API format)
 rsvps = client.people.rsvps(123)
 # => { data: [...], included: [... event details ...] }
 
@@ -149,11 +154,13 @@ rsvps = client.people.rsvps(123)
 rsvps = client.people.rsvps(123, include_event: false)
 # => { data: [...] }
 
-# Get person's recent activities
+# Get person's recent activities (V1 API - will migrate to V2 when available)
 # Note: This endpoint may not be available on all NationBuilder accounts
 activities = client.people.activities(123)
 # => { results: [{ type: "email_sent", created_at: "...", ... }] }
 ```
+
+**Note**: The People resource uses the V2 API by default, which returns data in JSON:API format. Only the `activities()` method still uses V1 as the V2 equivalent is not yet available.
 
 ## Configuration Options
 

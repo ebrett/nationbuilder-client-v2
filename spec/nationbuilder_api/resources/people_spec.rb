@@ -14,18 +14,21 @@ RSpec.describe NationbuilderApi::Resources::People do
   subject(:people) { described_class.new(client) }
 
   describe "#show" do
-    it "makes GET request to /api/v1/people/:id" do
-      expect(client).to receive(:get).with("/api/v1/people/123", params: {})
+    it "makes GET request to /api/v2/people/:id" do
+      expect(client).to receive(:get).with("/api/v2/people/123", params: {})
       people.show(123)
     end
 
-    it "returns person data" do
+    it "returns person data in JSON:API format" do
       person_data = {
-        person: {
-          id: 123,
-          first_name: "John",
-          last_name: "Doe",
-          email: "john@example.com"
+        data: {
+          type: "person",
+          id: "123",
+          attributes: {
+            first_name: "John",
+            last_name: "Doe",
+            email: "john@example.com"
+          }
         }
       }
 
@@ -36,22 +39,32 @@ RSpec.describe NationbuilderApi::Resources::People do
     end
 
     it "accepts string ID" do
-      expect(client).to receive(:get).with("/api/v1/people/456", params: {})
+      expect(client).to receive(:get).with("/api/v2/people/456", params: {})
       people.show("456")
+    end
+
+    it "includes taggings when requested" do
+      expect(client).to receive(:get).with("/api/v2/people/123?include=taggings", params: {})
+      people.show(123, include_taggings: true)
     end
   end
 
   describe "#taggings" do
-    it "makes GET request to /api/v1/people/:id/taggings" do
-      expect(client).to receive(:get).with("/api/v1/people/123/taggings", params: {})
+    it "makes GET request to /api/v2/people/:id with taggings included" do
+      expect(client).to receive(:get).with("/api/v2/people/123?include=taggings", params: {})
       people.taggings(123)
     end
 
-    it "returns taggings data with results array" do
+    it "returns person data with taggings in JSON:API format" do
       taggings_data = {
-        results: [
-          {tag: "volunteer", created_at: "2024-01-01"},
-          {tag: "donor", created_at: "2024-01-02"}
+        data: {
+          type: "person",
+          id: "123",
+          attributes: {first_name: "John"}
+        },
+        included: [
+          {type: "tagging", id: "1", attributes: {tag: "volunteer"}},
+          {type: "tagging", id: "2", attributes: {tag: "donor"}}
         ]
       }
 
@@ -59,11 +72,11 @@ RSpec.describe NationbuilderApi::Resources::People do
       result = people.taggings(123)
 
       expect(result).to eq(taggings_data)
-      expect(result[:results].length).to eq(2)
+      expect(result[:included].length).to eq(2)
     end
 
     it "accepts string ID" do
-      expect(client).to receive(:get).with("/api/v1/people/789/taggings", params: {})
+      expect(client).to receive(:get).with("/api/v2/people/789?include=taggings", params: {})
       people.taggings("789")
     end
   end

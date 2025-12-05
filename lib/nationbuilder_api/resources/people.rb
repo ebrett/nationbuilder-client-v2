@@ -7,27 +7,36 @@ module NationbuilderApi
     # taggings, RSVPs, and activities
     class People < Base
       # Fetch a person by ID
+      # Uses V2 API with JSON:API format
       #
       # @param id [String, Integer] Person ID
-      # @return [Hash] Person data
+      # @param include_taggings [Boolean] Whether to sideload taggings (default: false)
+      # @return [Hash] Person data in JSON:API format
       #
       # @example
       #   client.people.show(123)
-      #   # => { person: { id: 123, first_name: "John", last_name: "Doe", ... } }
-      def show(id)
-        get("/api/v1/people/#{id}")
+      #   # => { data: { type: "person", id: "123", attributes: { ... } } }
+      #
+      # @example With taggings sideloaded
+      #   client.people.show(123, include_taggings: true)
+      #   # => { data: { ... }, included: [{ type: "tagging", ... }] }
+      def show(id, include_taggings: false)
+        path = "/api/v2/people/#{id}"
+        path += "?include=taggings" if include_taggings
+        get(path)
       end
 
       # Fetch a person's taggings (subscriptions/lists)
+      # Uses V2 API with JSON:API format via sideloading on the person endpoint
       #
       # @param id [String, Integer] Person ID
-      # @return [Hash] Taggings data with results array
+      # @return [Hash] Person data with taggings in JSON:API format
       #
       # @example
       #   client.people.taggings(123)
-      #   # => { results: [{ tag: "volunteer", ... }, ...] }
+      #   # => { data: { ... }, included: [{ type: "tagging", ... }] }
       def taggings(id)
-        get("/api/v1/people/#{id}/taggings")
+        show(id, include_taggings: true)
       end
 
       # Fetch a person's event RSVPs
@@ -50,16 +59,18 @@ module NationbuilderApi
       end
 
       # Fetch a person's recent activities
-      # Note: This endpoint may not be available on all NationBuilder accounts
+      # Note: Uses V1 API as activities endpoint is not yet available in V2
+      # This endpoint may not be available on all NationBuilder accounts
       #
       # @param id [String, Integer] Person ID
-      # @return [Hash] Activities data with results array
+      # @return [Hash] Activities data with results array (V1 format)
       # @raise [NotFoundError] If activities endpoint is not available
       #
       # @example
       #   client.people.activities(123)
       #   # => { results: [{ type: "email_sent", created_at: "...", ... }, ...] }
       def activities(id)
+        # TODO: Migrate to V2 when activities endpoint becomes available
         get("/api/v1/people/#{id}/activities")
       end
 

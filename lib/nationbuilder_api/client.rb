@@ -138,6 +138,18 @@ module NationbuilderApi
       http_client.delete(path)
     end
 
+    # Access People resource
+    #
+    # @return [Resources::People] People resource instance
+    #
+    # @example
+    #   client.people.show(123)
+    #   client.people.taggings(123)
+    #   client.people.rsvps(123)
+    def people
+      @people ||= Resources::People.new(self)
+    end
+
     private
 
     # Extract OAuth base URL from API base URL

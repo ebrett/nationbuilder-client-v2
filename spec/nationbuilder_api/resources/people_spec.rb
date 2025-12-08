@@ -14,15 +14,15 @@ RSpec.describe NationbuilderApi::Resources::People do
   subject(:people) { described_class.new(client) }
 
   describe "#show" do
-    it "makes GET request to /api/v2/people/:id" do
-      expect(client).to receive(:get).with("/api/v2/people/123", params: {})
+    it "makes GET request to /api/v2/signups/:id" do
+      expect(client).to receive(:get).with("/api/v2/signups/123", params: {})
       people.show(123)
     end
 
     it "returns person data in JSON:API format" do
       person_data = {
         data: {
-          type: "person",
+          type: "signup",
           id: "123",
           attributes: {
             first_name: "John",
@@ -39,26 +39,31 @@ RSpec.describe NationbuilderApi::Resources::People do
     end
 
     it "accepts string ID" do
-      expect(client).to receive(:get).with("/api/v2/people/456", params: {})
+      expect(client).to receive(:get).with("/api/v2/signups/456", params: {})
       people.show("456")
     end
 
     it "includes taggings when requested" do
-      expect(client).to receive(:get).with("/api/v2/people/123?include=taggings", params: {})
+      expect(client).to receive(:get).with("/api/v2/signups/123?include=taggings", params: {})
       people.show(123, include_taggings: true)
+    end
+
+    it "supports 'me' for current user" do
+      expect(client).to receive(:get).with("/api/v2/signups/me", params: {})
+      people.show("me")
     end
   end
 
   describe "#taggings" do
-    it "makes GET request to /api/v2/people/:id with taggings included" do
-      expect(client).to receive(:get).with("/api/v2/people/123?include=taggings", params: {})
+    it "makes GET request to /api/v2/signups/:id with taggings included" do
+      expect(client).to receive(:get).with("/api/v2/signups/123?include=taggings", params: {})
       people.taggings(123)
     end
 
     it "returns person data with taggings in JSON:API format" do
       taggings_data = {
         data: {
-          type: "person",
+          type: "signup",
           id: "123",
           attributes: {first_name: "John"}
         },
@@ -76,7 +81,7 @@ RSpec.describe NationbuilderApi::Resources::People do
     end
 
     it "accepts string ID" do
-      expect(client).to receive(:get).with("/api/v2/people/789?include=taggings", params: {})
+      expect(client).to receive(:get).with("/api/v2/signups/789?include=taggings", params: {})
       people.taggings("789")
     end
   end

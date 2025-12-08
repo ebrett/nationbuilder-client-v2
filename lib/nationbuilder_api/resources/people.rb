@@ -9,19 +9,23 @@ module NationbuilderApi
       # Fetch a person by ID
       # Uses V2 API with JSON:API format
       #
-      # @param id [String, Integer] Person ID
+      # @param id [String, Integer] Person ID or "me" for current user
       # @param include_taggings [Boolean] Whether to sideload taggings (default: false)
       # @return [Hash] Person data in JSON:API format
       #
       # @example
       #   client.people.show(123)
-      #   # => { data: { type: "person", id: "123", attributes: { ... } } }
+      #   # => { data: { type: "signup", id: "123", attributes: { ... } } }
       #
       # @example With taggings sideloaded
       #   client.people.show(123, include_taggings: true)
       #   # => { data: { ... }, included: [{ type: "tagging", ... }] }
+      #
+      # @example Current user
+      #   client.people.show("me")
+      #   # => { data: { type: "signup", id: "123", attributes: { ... } } }
       def show(id, include_taggings: false)
-        path = "/api/v2/people/#{id}"
+        path = "/api/v2/signups/#{id}"
         path += "?include=taggings" if include_taggings
         get(path)
       end

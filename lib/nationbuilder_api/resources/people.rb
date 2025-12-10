@@ -78,6 +78,53 @@ module NationbuilderApi
         get("/api/v1/people/#{id}/activities")
       end
 
+      # Update a person's attributes
+      # Uses V2 API with JSON:API format
+      #
+      # @param id [String, Integer] Person ID
+      # @param attributes [Hash] Person attributes to update (first_name, last_name, email, phone, mobile, addresses, etc.)
+      # @return [Hash] Updated person data in JSON:API format
+      # @raise [ValidationError] If attributes are invalid
+      # @raise [NotFoundError] If person not found
+      # @raise [AuthenticationError] If token is invalid/expired
+      #
+      # @note This performs a partial update - only provided attributes are modified.
+      #   Omitted attributes retain their current values.
+      # @note Some fields are read-only (id, created_at, updated_at, etc.)
+      #   and will be ignored if included in attributes.
+      # @note Some fields may require specific OAuth scopes or account
+      #   settings to modify. Check NationBuilder API documentation for details.
+      #
+      # @example Update basic fields
+      #   client.people.update(123, attributes: {
+      #     first_name: "John",
+      #     last_name: "Doe",
+      #     email: "john@example.com",
+      #     mobile: "+1234567890"
+      #   })
+      #
+      # @example Update address
+      #   client.people.update(123, attributes: {
+      #     primary_address: {
+      #       address1: "123 Main St",
+      #       city: "Portland",
+      #       state: "OR",
+      #       zip: "97201",
+      #       country_code: "US"
+      #     }
+      #   })
+      def update(id, attributes:)
+        path = "/api/v2/signups/#{id}"
+        body = {
+          data: {
+            type: "signup",
+            id: id.to_s,
+            attributes: attributes
+          }
+        }
+        patch(path, body: body)
+      end
+
       private
 
       # Build query string for complex parameters (like nested filters)

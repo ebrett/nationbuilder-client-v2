@@ -20,8 +20,10 @@ VCR.configure do |config|
   config.cassette_library_dir = "spec/vcr_cassettes"
   config.hook_into :webmock
   config.configure_rspec_metadata!
-  config.filter_sensitive_data("<NATIONBUILDER_CLIENT_ID>") { ENV["NATIONBUILDER_CLIENT_ID"] }
-  config.filter_sensitive_data("<NATIONBUILDER_CLIENT_SECRET>") { ENV["NATIONBUILDER_CLIENT_SECRET"] }
+  # Optional: Filter ENV vars from VCR cassettes if they're set
+  # These ENV vars are NOT required for tests to run
+  config.filter_sensitive_data("<NATIONBUILDER_CLIENT_ID>") { ENV["NATIONBUILDER_CLIENT_ID"] } if ENV["NATIONBUILDER_CLIENT_ID"]
+  config.filter_sensitive_data("<NATIONBUILDER_CLIENT_SECRET>") { ENV["NATIONBUILDER_CLIENT_SECRET"] } if ENV["NATIONBUILDER_CLIENT_SECRET"]
   config.filter_sensitive_data("<ACCESS_TOKEN>") do |interaction|
     interaction.response.headers["Authorization"]&.first
   end

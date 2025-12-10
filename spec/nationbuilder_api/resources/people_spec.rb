@@ -188,6 +188,137 @@ RSpec.describe NationbuilderApi::Resources::People do
     end
   end
 
+  describe "#update" do
+    let(:update_attributes) do
+      {
+        first_name: "John",
+        last_name: "Doe",
+        email: "john@example.com",
+        mobile: "+1234567890"
+      }
+    end
+
+    let(:expected_body) do
+      {
+        data: {
+          type: "signup",
+          id: "123",
+          attributes: update_attributes
+        }
+      }
+    end
+
+    it "makes PATCH request to /api/v2/signups/:id" do
+      expect(client).to receive(:patch)
+        .with("/api/v2/signups/123", body: expected_body)
+
+      people.update(123, attributes: update_attributes)
+    end
+
+    it "returns updated person data in JSON:API format" do
+      updated_person = {
+        data: {
+          type: "signup",
+          id: "123",
+          attributes: {
+            first_name: "John",
+            last_name: "Doe",
+            email: "john@example.com",
+            mobile: "+1234567890"
+          }
+        }
+      }
+
+      allow(client).to receive(:patch).and_return(updated_person)
+      result = people.update(123, attributes: update_attributes)
+
+      expect(result).to eq(updated_person)
+      expect(result[:data][:attributes][:first_name]).to eq("John")
+    end
+
+    it "accepts string ID" do
+      expected_body_with_string_id = {
+        data: {
+          type: "signup",
+          id: "456",
+          attributes: update_attributes
+        }
+      }
+
+      expect(client).to receive(:patch)
+        .with("/api/v2/signups/456", body: expected_body_with_string_id)
+
+      people.update("456", attributes: update_attributes)
+    end
+
+    it "handles nested address attributes" do
+      address_attributes = {
+        primary_address: {
+          address1: "123 Main St",
+          city: "Portland",
+          state: "OR",
+          zip: "97201",
+          country_code: "US"
+        }
+      }
+
+      expected_address_body = {
+        data: {
+          type: "signup",
+          id: "123",
+          attributes: address_attributes
+        }
+      }
+
+      expect(client).to receive(:patch)
+        .with("/api/v2/signups/123", body: expected_address_body)
+
+      people.update(123, attributes: address_attributes)
+    end
+
+    it "handles empty attributes hash" do
+      empty_body = {
+        data: {
+          type: "signup",
+          id: "123",
+          attributes: {}
+        }
+      }
+
+      expect(client).to receive(:patch)
+        .with("/api/v2/signups/123", body: empty_body)
+
+      people.update(123, attributes: {})
+    end
+
+    it "raises NotFoundError when person does not exist" do
+      allow(client).to receive(:patch)
+        .and_raise(NationbuilderApi::NotFoundError, "Person not found")
+
+      expect {
+        people.update(999, attributes: update_attributes)
+      }.to raise_error(NationbuilderApi::NotFoundError, "Person not found")
+    end
+
+    it "raises ValidationError for invalid attributes" do
+      allow(client).to receive(:patch)
+        .and_raise(NationbuilderApi::ValidationError, "Invalid email format")
+
+      expect {
+        people.update(123, attributes: {email: "invalid-email"})
+      }.to raise_error(NationbuilderApi::ValidationError, "Invalid email format")
+    end
+
+    it "raises AuthenticationError when token is invalid" do
+      allow(client).to receive(:patch)
+        .and_raise(NationbuilderApi::AuthenticationError, "Token expired")
+
+      expect {
+        people.update(123, attributes: update_attributes)
+      }.to raise_error(NationbuilderApi::AuthenticationError, "Token expired")
+    end
+  end
+
   describe "query string building" do
     it "properly encodes nested filter parameters" do
       # Test the query string building by checking the actual call

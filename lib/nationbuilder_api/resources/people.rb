@@ -88,6 +88,13 @@ module NationbuilderApi
       # @raise [NotFoundError] If person not found
       # @raise [AuthenticationError] If token is invalid/expired
       #
+      # @note This performs a partial update - only provided attributes are modified.
+      #   Omitted attributes retain their current values.
+      # @note Some fields are read-only (id, created_at, updated_at, etc.)
+      #   and will be ignored if included in attributes.
+      # @note Some fields may require specific OAuth scopes or account
+      #   settings to modify. Check NationBuilder API documentation for details.
+      #
       # @example Update basic fields
       #   client.people.update(123, attributes: {
       #     first_name: "John",

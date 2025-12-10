@@ -37,28 +37,37 @@ gem install nationbuilder-client-v2
 
 ## Quick Start
 
-### Rails Application
+### Basic Usage (Recommended)
 
-```ruby
-# config/initializers/nationbuilder_api.rb
-NationbuilderApi.configure do |config|
-  config.client_id = ENV['NATIONBUILDER_CLIENT_ID']
-  config.client_secret = ENV['NATIONBUILDER_CLIENT_SECRET']
-  config.redirect_uri = 'https://your-app.com/oauth/callback'
-end
-```
-
-### Non-Rails Application
+Pass credentials directly when creating a client instance. This is the recommended approach, especially for multi-tenant applications:
 
 ```ruby
 require 'nationbuilder_api'
 
 client = NationbuilderApi::Client.new(
-  client_id: ENV['NATIONBUILDER_CLIENT_ID'],
-  client_secret: ENV['NATIONBUILDER_CLIENT_SECRET'],
+  client_id: 'your_client_id',
+  client_secret: 'your_client_secret',
   redirect_uri: 'https://your-app.com/oauth/callback'
 )
 ```
+
+### Global Configuration (Optional)
+
+For single-tenant applications, you can optionally set global defaults:
+
+```ruby
+# config/initializers/nationbuilder_api.rb (Rails)
+NationbuilderApi.configure do |config|
+  config.client_id = ENV['NATIONBUILDER_CLIENT_ID']
+  config.client_secret = ENV['NATIONBUILDER_CLIENT_SECRET']
+  config.redirect_uri = ENV['NATIONBUILDER_REDIRECT_URI']
+end
+
+# Then create clients without passing credentials
+client = NationbuilderApi::Client.new
+```
+
+**Note**: Global configuration is optional. Instance options always override global settings, making it easy to support multiple NationBuilder accounts.
 
 ## OAuth Authentication Flow
 
@@ -164,33 +173,122 @@ activities = client.people.activities(123)
 
 ## Configuration Options
 
-### Global Configuration
+### Instance Configuration (Recommended)
+
+Pass configuration options directly when creating a client. This is the recommended approach for most applications:
+
+```ruby
+client = NationbuilderApi::Client.new(
+  # OAuth credentials (required)
+  client_id: 'your_client_id',
+  client_secret: 'your_client_secret',
+  redirect_uri: 'https://example.com/callback',
+
+  # Optional configuration
+  base_url: 'https://api.nationbuilder.com/v2', # Default
+  token_adapter: :active_record, # :memory, :redis, or custom adapter
+  timeout: 30, # HTTP timeout in seconds
+  identifier: 'account_123' # For multi-tenant applications
+)
+```
+
+This approach allows you to:
+- Manage multiple NationBuilder accounts with different credentials
+- Store credentials in your database instead of environment variables
+- Create clients with different configurations in the same application
+
+### Global Configuration (Optional)
+
+For single-tenant applications, you can optionally set global defaults that apply to all clients:
 
 ```ruby
 NationbuilderApi.configure do |config|
-  # Required
-  config.client_id = 'your_client_id'
-  config.client_secret = 'your_client_secret'
-  config.redirect_uri = 'https://example.com/callback'
-
-  # Optional
-  config.base_url = 'https://api.nationbuilder.com/v2' # Default
-  config.token_adapter = :active_record # :memory, :redis, or custom adapter
-  config.timeout = 30 # HTTP timeout in seconds
+  # These are defaults - instance options will override them
+  config.base_url = 'https://api.nationbuilder.com/v2'
+  config.token_adapter = :active_record
+  config.timeout = 30
   config.log_level = :info # :debug, :info, :warn, :error
 end
-```
 
-### Instance Configuration
-
-```ruby
-# Instance configuration overrides global configuration
+# Create client - can override any global setting
 client = NationbuilderApi::Client.new(
-  client_id: 'custom_client_id',
-  timeout: 60,
-  token_adapter: :redis
+  client_id: 'your_client_id',
+  client_secret: 'your_client_secret',
+  redirect_uri: 'https://example.com/callback',
+  timeout: 60 # Override global timeout
 )
 ```
+
+**Important**: Credentials (`client_id`, `client_secret`, `redirect_uri`) are **not required** in global configuration. You can pass them per-instance, which is especially useful for multi-tenant applications.
+
+## Multi-Tenant Usage
+
+The gem is designed to support multi-tenant applications where you manage multiple NationBuilder accounts, each with their own OAuth credentials. This is the recommended pattern for SaaS applications.
+
+### Basic Multi-Tenant Pattern
+
+```ruby
+# Account 1
+client1 = NationbuilderApi::Client.new(
+  client_id: 'account1_client_id',
+  client_secret: 'account1_secret',
+  redirect_uri: 'https://example.com/callback',
+  identifier: 'account_1'
+)
+
+# Account 2
+client2 = NationbuilderApi::Client.new(
+  client_id: 'account2_client_id',
+  client_secret: 'account2_secret',
+  redirect_uri: 'https://example.com/callback',
+  identifier: 'account_2'
+)
+
+# Each client uses separate credentials and tokens
+client1.get('/people') # Uses account_1 credentials and token
+client2.get('/people') # Uses account_2 credentials and token
+```
+
+### Storing Credentials in Database (Recommended)
+
+For production multi-tenant applications, store OAuth credentials in your database:
+
+```ruby
+# app/models/nation.rb
+class Nation < ApplicationRecord
+  # Columns: client_id, client_secret, redirect_uri, base_url
+end
+
+# app/services/nationbuilder_service.rb
+class NationbuilderService
+  def initialize(nation)
+    @nation = nation
+  end
+
+  def client
+    @client ||= NationbuilderApi::Client.new(
+      client_id: @nation.client_id,
+      client_secret: @nation.client_secret,
+      redirect_uri: @nation.redirect_uri,
+      base_url: @nation.base_url,
+      identifier: "nation_#{@nation.id}",
+      token_adapter: :active_record
+    )
+  end
+end
+
+# Usage
+nation = Nation.find(params[:nation_id])
+service = NationbuilderService.new(nation)
+people = service.client.people.show(123)
+```
+
+**Benefits of this approach:**
+- No ENV variables required
+- Each account has isolated credentials
+- Credentials can be updated through your application UI
+- Easy to add/remove accounts dynamically
+- Better security through database encryption
 
 ## Token Storage Adapters
 
@@ -307,32 +405,6 @@ end
 - `RateLimitError` - Rate limit exceeded (retryable, includes `retry_after`)
 - `ServerError` - 5xx server errors (retryable)
 - `NetworkError` - Timeouts, connection failures (retryable)
-
-## Multi-Tenant Usage
-
-Manage multiple NationBuilder accounts using identifiers:
-
-```ruby
-# Account 1
-client1 = NationbuilderApi::Client.new(
-  client_id: 'client_id',
-  client_secret: 'client_secret',
-  redirect_uri: 'https://example.com/callback',
-  identifier: 'account_1'
-)
-
-# Account 2
-client2 = NationbuilderApi::Client.new(
-  client_id: 'client_id',
-  client_secret: 'client_secret',
-  redirect_uri: 'https://example.com/callback',
-  identifier: 'account_2'
-)
-
-# Each client uses separate tokens
-client1.get('/people') # Uses account_1 token
-client2.get('/people') # Uses account_2 token
-```
 
 ## Logging
 

@@ -16,6 +16,7 @@ module NationbuilderApi
     # @option options [Logger] :logger Logger instance
     # @option options [Symbol] :log_level Log level (:debug, :info, :warn, :error)
     # @option options [Integer] :timeout HTTP timeout in seconds
+    # @option options [Boolean] :ssl_verify Enable SSL certificate verification (default: true)
     # @option options [String] :identifier Token identifier for multi-tenant apps
     def initialize(**options)
       @config = build_configuration(options)

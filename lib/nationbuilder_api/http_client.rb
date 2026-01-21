@@ -105,8 +105,8 @@ module NationbuilderApi
       http.use_ssl = true
       http.read_timeout = config.timeout
       http.open_timeout = config.timeout
-      # SSL verification is always enabled for security
-      # Use OpenSSL::SSL::VERIFY_PEER by default (Ruby's default)
+      # SSL verification (can be disabled for development/testing)
+      http.verify_mode = config.ssl_verify ? OpenSSL::SSL::VERIFY_PEER : OpenSSL::SSL::VERIFY_NONE
 
       # Create request object based on method
       request = case method

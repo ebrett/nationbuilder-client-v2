@@ -6,17 +6,19 @@ require "logger"
 module NationbuilderApi
   class Configuration
     attr_accessor :client_id, :client_secret, :redirect_uri, :base_url,
-      :log_level, :timeout
+      :log_level, :timeout, :ssl_verify
     attr_writer :logger, :token_adapter
 
     DEFAULT_BASE_URL = "https://api.nationbuilder.com/v2"
     DEFAULT_TIMEOUT = 30
     DEFAULT_LOG_LEVEL = :info
+    DEFAULT_SSL_VERIFY = true
 
     def initialize
       @base_url = DEFAULT_BASE_URL
       @timeout = DEFAULT_TIMEOUT
       @log_level = DEFAULT_LOG_LEVEL
+      @ssl_verify = DEFAULT_SSL_VERIFY
       @logger = nil
       @token_adapter = nil
       @client_id = nil

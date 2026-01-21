@@ -15,7 +15,7 @@ module NationbuilderApi
       #
       # @example
       #   client.people.show(123)
-      #   # => { data: { type: "signup", id: "123", attributes: { ... } } }
+      #   # => { data: { type: "signups", id: "123", attributes: { ... } } }
       #
       # @example With taggings sideloaded
       #   client.people.show(123, include_taggings: true)
@@ -23,7 +23,7 @@ module NationbuilderApi
       #
       # @example Current user
       #   client.people.show("me")
-      #   # => { data: { type: "signup", id: "123", attributes: { ... } } }
+      #   # => { data: { type: "signups", id: "123", attributes: { ... } } }
       def show(id, include_taggings: false)
         path = "/api/v2/signups/#{id}"
         path += "?include=taggings" if include_taggings
@@ -117,7 +117,7 @@ module NationbuilderApi
         path = "/api/v2/signups/#{id}"
         body = {
           data: {
-            type: "signup",
+            type: "signups",
             id: id.to_s,
             attributes: attributes
           }

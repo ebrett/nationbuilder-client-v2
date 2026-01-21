@@ -119,10 +119,53 @@ RSpec.describe NationbuilderApi::HttpClient, "Net::HTTP implementation" do
   end
 
   describe "SSL verification configuration" do
-    it "always uses SSL verification regardless of Rails environment" do
-      # Mock Rails environment as development
-      rails_double = double("Rails", env: double("env", development?: true, test?: false))
-      stub_const("Rails", rails_double)
+    it "uses VERIFY_PEER when ssl_verify is true (default)" do
+      # Mock Net::HTTP to verify SSL configuration
+      http_instance = instance_double(Net::HTTP)
+      allow(Net::HTTP).to receive(:new).and_return(http_instance)
+      allow(http_instance).to receive(:use_ssl=)
+      allow(http_instance).to receive(:read_timeout=)
+      allow(http_instance).to receive(:open_timeout=)
+      allow(http_instance).to receive(:verify_mode=)
+
+      # Create a mock request and response
+      request_double = instance_double(Net::HTTP::Get)
+      allow(Net::HTTP::Get).to receive(:new).and_return(request_double)
+      allow(request_double).to receive(:[]=)
+
+      response_double = instance_double(Net::HTTPSuccess, code: "200", body: '{"data": []}', to_hash: {"content-type" => ["application/json"]})
+      allow(http_instance).to receive(:request).and_return(response_double)
+
+      # Execute request with default ssl_verify: true
+      http_client.get("/people")
+
+      # Verify SSL verification is enabled (VERIFY_PEER)
+      expect(http_instance).to have_received(:verify_mode=).with(OpenSSL::SSL::VERIFY_PEER)
+    end
+
+    it "uses VERIFY_NONE when ssl_verify is false" do
+      # Create client with ssl_verify disabled
+      config_with_ssl_disabled = NationbuilderApi::Configuration.new
+      config_with_ssl_disabled.base_url = "https://api.nationbuilder.com/v2"
+      config_with_ssl_disabled.client_id = "test_client_id"
+      config_with_ssl_disabled.client_secret = "test_client_secret"
+      config_with_ssl_disabled.redirect_uri = "https://example.com/callback"
+      config_with_ssl_disabled.ssl_verify = false
+
+      token_adapter = NationbuilderApi::TokenStorage::Memory.new
+      token_adapter.store_token("test", {
+        access_token: "test_token",
+        refresh_token: "refresh_token",
+        expires_at: Time.now + 3600,
+        token_type: "Bearer",
+        scopes: []
+      })
+
+      http_client_no_ssl = described_class.new(
+        config: config_with_ssl_disabled,
+        token_adapter: token_adapter,
+        identifier: "test"
+      )
 
       # Mock Net::HTTP to verify SSL configuration
       http_instance = instance_double(Net::HTTP)
@@ -141,11 +184,10 @@ RSpec.describe NationbuilderApi::HttpClient, "Net::HTTP implementation" do
       allow(http_instance).to receive(:request).and_return(response_double)
 
       # Execute request
-      http_client.get("/people")
+      http_client_no_ssl.get("/people")
 
-      # Verify SSL verification was NOT explicitly disabled
-      # Ruby's Net::HTTP defaults to VERIFY_PEER, so we don't set verify_mode at all
-      expect(http_instance).not_to have_received(:verify_mode=)
+      # Verify SSL verification is disabled (VERIFY_NONE)
+      expect(http_instance).to have_received(:verify_mode=).with(OpenSSL::SSL::VERIFY_NONE)
     end
 
     it "enables SSL for HTTPS requests" do
@@ -155,6 +197,7 @@ RSpec.describe NationbuilderApi::HttpClient, "Net::HTTP implementation" do
       allow(http_instance).to receive(:use_ssl=)
       allow(http_instance).to receive(:read_timeout=)
       allow(http_instance).to receive(:open_timeout=)
+      allow(http_instance).to receive(:verify_mode=)
 
       # Create a mock request and response
       request_double = instance_double(Net::HTTP::Get)

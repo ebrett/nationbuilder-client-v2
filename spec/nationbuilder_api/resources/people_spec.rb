@@ -201,7 +201,7 @@ RSpec.describe NationbuilderApi::Resources::People do
     let(:expected_body) do
       {
         data: {
-          type: "signup",
+          type: "signups",
           id: "123",
           attributes: update_attributes
         }
@@ -239,7 +239,7 @@ RSpec.describe NationbuilderApi::Resources::People do
     it "accepts string ID" do
       expected_body_with_string_id = {
         data: {
-          type: "signup",
+          type: "signups",
           id: "456",
           attributes: update_attributes
         }
@@ -264,7 +264,7 @@ RSpec.describe NationbuilderApi::Resources::People do
 
       expected_address_body = {
         data: {
-          type: "signup",
+          type: "signups",
           id: "123",
           attributes: address_attributes
         }
@@ -279,7 +279,7 @@ RSpec.describe NationbuilderApi::Resources::People do
     it "handles empty attributes hash" do
       empty_body = {
         data: {
-          type: "signup",
+          type: "signups",
           id: "123",
           attributes: {}
         }
@@ -289,6 +289,14 @@ RSpec.describe NationbuilderApi::Resources::People do
         .with("/api/v2/signups/123", body: empty_body)
 
       people.update(123, attributes: {})
+    end
+
+    it "sets type field to 'signups' in request body" do
+      expect(client).to receive(:patch) do |_path, options|
+        expect(options[:body][:data][:type]).to eq("signups")
+      end
+
+      people.update(123, attributes: update_attributes)
     end
 
     it "raises NotFoundError when person does not exist" do

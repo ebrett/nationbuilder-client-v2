@@ -33,6 +33,9 @@ module NationbuilderApi
       # Fetch a person's taggings (subscriptions/lists)
       # Uses V2 API with JSON:API format via sideloading on the person endpoint
       #
+      # Note: V2 API returns tagging IDs but does not include tag names.
+      # For tag names and tag management, use list_taggings, add_tagging, and remove_tagging (V1 API).
+      #
       # @param id [String, Integer] Person ID
       # @return [Hash] Person data with taggings in JSON:API format
       #
@@ -41,6 +44,45 @@ module NationbuilderApi
       #   # => { data: { ... }, included: [{ type: "tagging", ... }] }
       def taggings(id)
         show(id, include_taggings: true)
+      end
+
+      # List a person's taggings with tag names
+      # Uses V1 API which returns tag names (unlike V2 API which only returns IDs)
+      #
+      # @param id [String, Integer] Person ID
+      # @return [Hash] Taggings data with tag names in V1 format
+      #
+      # @example
+      #   client.people.list_taggings(123)
+      #   # => { taggings: [{ tag: "volunteer", person_id: 123 }, { tag: "donor", person_id: 123 }] }
+      def list_taggings(id)
+        get("/api/v1/people/#{id}/taggings")
+      end
+
+      # Add a tag to a person
+      # Uses V1 API for tag management
+      #
+      # @param id [String, Integer] Person ID
+      # @param tag_name [String] Tag name to add
+      # @return [Hash] Response from API
+      #
+      # @example
+      #   client.people.add_tagging(123, "volunteer")
+      def add_tagging(id, tag_name)
+        put("/api/v1/people/#{id}/taggings", body: {tagging: {tag: tag_name}})
+      end
+
+      # Remove a tag from a person
+      # Uses V1 API for tag management
+      #
+      # @param id [String, Integer] Person ID
+      # @param tag_name [String] Tag name to remove
+      # @return [Hash] Response from API
+      #
+      # @example
+      #   client.people.remove_tagging(123, "volunteer")
+      def remove_tagging(id, tag_name)
+        delete("/api/v1/people/#{id}/taggings/#{tag_name}")
       end
 
       # Fetch a person's event RSVPs

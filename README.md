@@ -139,21 +139,34 @@ client.delete("/api/v1/people/#{person[:id]}")
 
 ### People Resource
 
-The People resource provides convenient methods for working with NationBuilder people data using the V2 API with JSON:API format:
+The People resource provides convenient methods for working with NationBuilder people data:
 
 ```ruby
 # Fetch person details (V2 API - JSON:API format)
 person = client.people.show(123)
 # => { data: { type: "person", id: "123", attributes: { first_name: "John", ... } } }
 
-# Fetch person with taggings sideloaded
+# Fetch person with taggings sideloaded (V2 API - JSON:API format)
 person_with_tags = client.people.show(123, include_taggings: true)
 # => { data: { ... }, included: [{ type: "tagging", ... }] }
 
 # Get person's taggings/subscriptions (V2 API - JSON:API format)
-# This is a convenience method that calls show() with include_taggings: true
+# Note: V2 API returns tagging IDs but not tag names
 taggings = client.people.taggings(123)
 # => { data: { ... }, included: [{ type: "tagging", ... }] }
+
+# Get person's taggings with tag names (V1 API - plain JSON format)
+# Use this when you need tag names (V2 API only returns IDs)
+taggings_with_names = client.people.list_taggings(123)
+# => { taggings: [{ tag: "volunteer", person_id: 123 }, { tag: "donor", person_id: 123 }] }
+
+# Add a tag to a person (V1 API)
+client.people.add_tagging(123, "volunteer")
+# => { tagging: { tag: "volunteer", person_id: 123 } }
+
+# Remove a tag from a person (V1 API)
+client.people.remove_tagging(123, "volunteer")
+# => { status: "deleted" }
 
 # Get person's event RSVPs (V2 API - JSON:API format)
 rsvps = client.people.rsvps(123)
@@ -163,13 +176,25 @@ rsvps = client.people.rsvps(123)
 rsvps = client.people.rsvps(123, include_event: false)
 # => { data: [...] }
 
-# Get person's recent activities (V1 API - will migrate to V2 when available)
+# Get person's recent activities (V1 API)
 # Note: This endpoint may not be available on all NationBuilder accounts
 activities = client.people.activities(123)
 # => { results: [{ type: "email_sent", created_at: "...", ... }] }
 ```
 
-**Note**: The People resource uses the V2 API by default, which returns data in JSON:API format. Only the `activities()` method still uses V1 as the V2 equivalent is not yet available.
+**Note**: The People resource primarily uses the V2 API with JSON:API format. However, tag management uses the V1 API because the V2 API does not include tag names or provide tag management endpoints.
+
+### Tags Resource
+
+The Tags resource provides access to tag data and management:
+
+```ruby
+# List all tags (V1 API - plain JSON format)
+tags = client.tags.list
+# => { results: [{ name: "volunteer", path: "/tags/volunteer" }, { name: "donor", ... }] }
+```
+
+**Note**: Tag management uses the V1 API because the V2 API does not provide tag management endpoints.
 
 ## Configuration Options
 

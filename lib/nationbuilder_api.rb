@@ -22,6 +22,7 @@ module NationbuilderApi
   module Resources
     autoload :Base, "nationbuilder_api/resources/base"
     autoload :People, "nationbuilder_api/resources/people"
+    autoload :Tags, "nationbuilder_api/resources/tags"
   end
 
   # OAuth scope constants

@@ -151,6 +151,16 @@ module NationbuilderApi
       @people ||= Resources::People.new(self)
     end
 
+    # Access Tags resource
+    #
+    # @return [Resources::Tags] Tags resource instance
+    #
+    # @example
+    #   client.tags.list
+    def tags
+      @tags ||= Resources::Tags.new(self)
+    end
+
     private
 
     # Extract OAuth base URL from API base URL

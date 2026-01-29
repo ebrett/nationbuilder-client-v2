@@ -345,4 +345,93 @@ RSpec.describe NationbuilderApi::Resources::People do
       people.rsvps("abc123")
     end
   end
+
+  describe "#list_taggings" do
+    it "makes GET request to /api/v1/people/:id/taggings" do
+      expect(client).to receive(:get).with("/api/v1/people/123/taggings", params: {})
+      people.list_taggings(123)
+    end
+
+    it "returns taggings data with tag names in V1 format" do
+      taggings_data = {
+        taggings: [
+          {tag: "volunteer", person_id: 123},
+          {tag: "donor", person_id: 123}
+        ]
+      }
+
+      allow(client).to receive(:get).and_return(taggings_data)
+      result = people.list_taggings(123)
+
+      expect(result).to eq(taggings_data)
+      expect(result[:taggings].length).to eq(2)
+      expect(result[:taggings].first[:tag]).to eq("volunteer")
+    end
+
+    it "accepts string ID" do
+      expect(client).to receive(:get).with("/api/v1/people/456/taggings", params: {})
+      people.list_taggings("456")
+    end
+  end
+
+  describe "#add_tagging" do
+    it "makes PUT request to /api/v1/people/:id/taggings" do
+      expected_body = {tagging: {tag: "volunteer"}}
+      expect(client).to receive(:put)
+        .with("/api/v1/people/123/taggings", body: expected_body)
+
+      people.add_tagging(123, "volunteer")
+    end
+
+    it "accepts string ID" do
+      expected_body = {tagging: {tag: "donor"}}
+      expect(client).to receive(:put)
+        .with("/api/v1/people/456/taggings", body: expected_body)
+
+      people.add_tagging("456", "donor")
+    end
+
+    it "returns response from API" do
+      response_data = {
+        tagging: {tag: "volunteer", person_id: 123}
+      }
+
+      allow(client).to receive(:put).and_return(response_data)
+      result = people.add_tagging(123, "volunteer")
+
+      expect(result).to eq(response_data)
+    end
+  end
+
+  describe "#remove_tagging" do
+    it "makes DELETE request to /api/v1/people/:id/taggings/:tag" do
+      expect(client).to receive(:delete)
+        .with("/api/v1/people/123/taggings/volunteer")
+
+      people.remove_tagging(123, "volunteer")
+    end
+
+    it "accepts string ID" do
+      expect(client).to receive(:delete)
+        .with("/api/v1/people/456/taggings/donor")
+
+      people.remove_tagging("456", "donor")
+    end
+
+    it "URL encodes tag name with spaces" do
+      expect(client).to receive(:delete)
+        .with("/api/v1/people/123/taggings/needs follow-up")
+
+      people.remove_tagging(123, "needs follow-up")
+    end
+
+    it "returns response from API" do
+      response_data = {status: "deleted"}
+
+      allow(client).to receive(:delete).and_return(response_data)
+      result = people.remove_tagging(123, "volunteer")
+
+      expect(result).to eq(response_data)
+    end
+  end
 end

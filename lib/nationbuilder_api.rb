@@ -23,6 +23,8 @@ module NationbuilderApi
     autoload :Base, "nationbuilder_api/resources/base"
     autoload :People, "nationbuilder_api/resources/people"
     autoload :Tags, "nationbuilder_api/resources/tags"
+    autoload :Donations, "nationbuilder_api/resources/donations"
+    autoload :Events, "nationbuilder_api/resources/events"
   end
 
   # Response objects

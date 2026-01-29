@@ -25,6 +25,12 @@ module NationbuilderApi
     autoload :Tags, "nationbuilder_api/resources/tags"
   end
 
+  # Response objects
+  module ResponseObjects
+    autoload :Base, "nationbuilder_api/response_objects/base"
+    autoload :Person, "nationbuilder_api/response_objects/person"
+  end
+
   # OAuth scope constants
   SCOPE_PEOPLE_READ = "people:read"
   SCOPE_PEOPLE_WRITE = "people:write"

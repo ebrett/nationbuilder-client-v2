@@ -1,13 +1,21 @@
 # frozen_string_literal: true
 
 RSpec.describe NationbuilderApi::Resources::People do
+  let(:config) do
+    instance_double(
+      NationbuilderApi::Configuration,
+      wrap_responses: false
+    )
+  end
+
   let(:client) do
     instance_double(
       NationbuilderApi::Client,
       get: nil,
       post: nil,
       patch: nil,
-      delete: nil
+      delete: nil,
+      config: config
     )
   end
 

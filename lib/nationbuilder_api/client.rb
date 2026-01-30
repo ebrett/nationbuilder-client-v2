@@ -161,6 +161,29 @@ module NationbuilderApi
       @tags ||= Resources::Tags.new(self)
     end
 
+    # Access Donations resource
+    #
+    # @return [Resources::Donations] Donations resource instance
+    #
+    # @example
+    #   client.donations.list
+    #   client.donations.show(123)
+    def donations
+      @donations ||= Resources::Donations.new(self)
+    end
+
+    # Access Events resource
+    #
+    # @return [Resources::Events] Events resource instance
+    #
+    # @example
+    #   client.events.list
+    #   client.events.show(123)
+    #   client.events.rsvps(123)
+    def events
+      @events ||= Resources::Events.new(self)
+    end
+
     private
 
     # Extract OAuth base URL from API base URL

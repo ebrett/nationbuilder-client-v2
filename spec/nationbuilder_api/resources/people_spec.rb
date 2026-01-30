@@ -1,13 +1,21 @@
 # frozen_string_literal: true
 
 RSpec.describe NationbuilderApi::Resources::People do
+  let(:config) do
+    instance_double(
+      NationbuilderApi::Configuration,
+      wrap_responses: false
+    )
+  end
+
   let(:client) do
     instance_double(
       NationbuilderApi::Client,
       get: nil,
       post: nil,
       patch: nil,
-      delete: nil
+      delete: nil,
+      config: config
     )
   end
 
@@ -432,6 +440,153 @@ RSpec.describe NationbuilderApi::Resources::People do
       result = people.remove_tagging(123, "volunteer")
 
       expect(result).to eq(response_data)
+    end
+  end
+
+  describe "#list" do
+    it "makes GET request to /api/v2/signups" do
+      expect(client).to receive(:get).with("/api/v2/signups", params: {})
+      people.list
+    end
+
+    it "returns list of people in JSON:API format" do
+      list_data = {
+        data: [
+          {type: "signup", id: "1", attributes: {first_name: "John"}},
+          {type: "signup", id: "2", attributes: {first_name: "Jane"}}
+        ]
+      }
+
+      allow(client).to receive(:get).and_return(list_data)
+      result = people.list
+
+      expect(result).to eq(list_data)
+      expect(result[:data].length).to eq(2)
+    end
+
+    it "supports pagination parameters" do
+      expected_params = {page: {number: 2, size: 50}}
+      expect(client).to receive(:get).with("/api/v2/signups", params: expected_params)
+
+      people.list(page: 2, per_page: 50)
+    end
+
+    it "supports filtering parameters" do
+      expected_params = {filter: {email: "john@example.com"}}
+      expect(client).to receive(:get).with("/api/v2/signups", params: expected_params)
+
+      people.list(filter: {email: "john@example.com"})
+    end
+  end
+
+  describe "#create" do
+    let(:person_attributes) do
+      {
+        first_name: "John",
+        last_name: "Doe",
+        email: "john@example.com"
+      }
+    end
+
+    let(:expected_body) do
+      {
+        data: {
+          type: "signups",
+          attributes: person_attributes
+        }
+      }
+    end
+
+    it "makes POST request to /api/v2/signups" do
+      expect(client).to receive(:post)
+        .with("/api/v2/signups", body: expected_body)
+
+      people.create(attributes: person_attributes)
+    end
+
+    it "returns created person in JSON:API format" do
+      created_person = {
+        data: {
+          type: "signup",
+          id: "123",
+          attributes: person_attributes
+        }
+      }
+
+      allow(client).to receive(:post).and_return(created_person)
+      result = people.create(attributes: person_attributes)
+
+      expect(result).to eq(created_person)
+      expect(result.dig(:data, :id)).to eq("123")
+    end
+
+    it "raises ValidationError for invalid attributes" do
+      allow(client).to receive(:post)
+        .and_raise(NationbuilderApi::ValidationError, "Invalid email")
+
+      expect {
+        people.create(attributes: {email: "invalid"})
+      }.to raise_error(NationbuilderApi::ValidationError, "Invalid email")
+    end
+  end
+
+  describe "#delete" do
+    it "makes DELETE request to /api/v2/signups/:id" do
+      expect(client).to receive(:delete).with("/api/v2/signups/123")
+      people.delete(123)
+    end
+
+    it "accepts string ID" do
+      expect(client).to receive(:delete).with("/api/v2/signups/456")
+      people.delete("456")
+    end
+
+    it "returns response from API" do
+      response_data = {status: "deleted"}
+
+      allow(client).to receive(:delete).and_return(response_data)
+      result = people.delete(123)
+
+      expect(result).to eq(response_data)
+    end
+
+    it "raises NotFoundError when person not found" do
+      allow(client).to receive(:delete)
+        .and_raise(NationbuilderApi::NotFoundError, "Person not found")
+
+      expect {
+        people.delete(999)
+      }.to raise_error(NationbuilderApi::NotFoundError, "Person not found")
+    end
+  end
+
+  describe "#search" do
+    it "makes GET request to /api/v2/signups with search filter" do
+      expected_params = {filter: {name: "John Doe"}}
+      expect(client).to receive(:get).with("/api/v2/signups", params: expected_params)
+
+      people.search("John Doe")
+    end
+
+    it "returns search results in JSON:API format" do
+      search_results = {
+        data: [
+          {type: "signup", id: "1", attributes: {first_name: "John", last_name: "Doe"}}
+        ]
+      }
+
+      allow(client).to receive(:get).and_return(search_results)
+      result = people.search("John Doe")
+
+      expect(result).to eq(search_results)
+      expect(result[:data].length).to eq(1)
+    end
+
+    it "supports additional filter parameters" do
+      expected_params = {filter: {name: "John", email: "john@example.com"}}
+      expect(client).to receive(:get).with("/api/v2/signups", params: expected_params)
+
+      people.search("John", email: "john@example.com")
     end
   end
 end

@@ -11,7 +11,7 @@ module NationbuilderApi
       #
       # @param id [String, Integer] Person ID or "me" for current user
       # @param include_taggings [Boolean] Whether to sideload taggings (default: false)
-      # @return [Hash] Person data in JSON:API format
+      # @return [Hash, ResponseObjects::Person] Person data (Hash by default, ResponseObjects::Person if wrap_responses enabled)
       #
       # @example
       #   client.people.show(123)
@@ -24,10 +24,17 @@ module NationbuilderApi
       # @example Current user
       #   client.people.show("me")
       #   # => { data: { type: "signups", id: "123", attributes: { ... } } }
+      #
+      # @example With response objects enabled
+      #   # config.wrap_responses = true
+      #   person = client.people.show(123)
+      #   person.first_name  # => "John"
+      #   person[:data]      # => still works (backward compatible)
       def show(id, include_taggings: false)
         path = "/api/v2/signups/#{id}"
         path += "?include=taggings" if include_taggings
-        get(path)
+        response = get(path)
+        wrap_person_response(response)
       end
 
       # Fetch a person's taggings (subscriptions/lists)
@@ -82,7 +89,88 @@ module NationbuilderApi
       # @example
       #   client.people.remove_tagging(123, "volunteer")
       def remove_tagging(id, tag_name)
-        delete("/api/v1/people/#{id}/taggings/#{tag_name}")
+        client.delete("/api/v1/people/#{id}/taggings/#{tag_name}")
+      end
+
+      # List people
+      # Uses V2 API with JSON:API format
+      #
+      # @param page [Integer, nil] Page number for pagination
+      # @param per_page [Integer, nil] Number of results per page
+      # @param filter [Hash, nil] Filter parameters
+      # @return [Hash, Array<ResponseObjects::Person>] List of people (Hash by default, Array of Person objects if wrap_responses enabled)
+      #
+      # @example
+      #   client.people.list
+      #   # => { data: [{type: "signup", id: "1", ...}, ...] }
+      #
+      # @example With pagination
+      #   client.people.list(page: 2, per_page: 50)
+      #
+      # @example With filtering
+      #   client.people.list(filter: {email: "john@example.com"})
+      def list(page: nil, per_page: nil, filter: nil)
+        params = {}
+        params[:page] = {number: page, size: per_page} if page || per_page
+        params[:filter] = filter if filter
+
+        response = get("/api/v2/signups", params: params)
+        wrap_person_response(response)
+      end
+
+      # Create a new person
+      # Uses V2 API with JSON:API format
+      #
+      # @param attributes [Hash] Person attributes (first_name, last_name, email, etc.)
+      # @return [Hash, ResponseObjects::Person] Created person data
+      # @raise [ValidationError] If attributes are invalid
+      #
+      # @example
+      #   client.people.create(attributes: {
+      #     first_name: "John",
+      #     last_name: "Doe",
+      #     email: "john@example.com"
+      #   })
+      def create(attributes:)
+        body = {
+          data: {
+            type: "signups",
+            attributes: attributes
+          }
+        }
+        response = post("/api/v2/signups", body: body)
+        wrap_person_response(response)
+      end
+
+      # Delete a person
+      # Uses V2 API
+      #
+      # @param id [String, Integer] Person ID
+      # @return [Hash] Response from API
+      # @raise [NotFoundError] If person not found
+      #
+      # @example
+      #   client.people.delete(123)
+      def delete(id)
+        client.delete("/api/v2/signups/#{id}")
+      end
+
+      # Search for people
+      # Uses V2 API with name filter
+      #
+      # @param query [String] Search query (name)
+      # @param filter [Hash] Additional filter parameters
+      # @return [Hash, Array<ResponseObjects::Person>] Search results
+      #
+      # @example
+      #   client.people.search("John Doe")
+      #
+      # @example With additional filters
+      #   client.people.search("John", email: "john@example.com")
+      def search(query, **filter)
+        params = {filter: {name: query}.merge(filter)}
+        response = get("/api/v2/signups", params: params)
+        wrap_person_response(response)
       end
 
       # Fetch a person's event RSVPs
@@ -164,10 +252,21 @@ module NationbuilderApi
             attributes: attributes
           }
         }
-        patch(path, body: body)
+        response = patch(path, body: body)
+        wrap_person_response(response)
       end
 
       private
+
+      # Wrap response in Person object if wrap_responses is enabled
+      #
+      # @param response [Hash] Raw API response
+      # @return [Hash, ResponseObjects::Person] Wrapped or raw response
+      def wrap_person_response(response)
+        return response unless client.config.wrap_responses
+
+        ResponseObjects::Person.new(response)
+      end
 
       # Build query string for complex parameters (like nested filters)
       # Handles nested hashes for filter parameters

@@ -246,6 +246,40 @@ client = NationbuilderApi::Client.new(
 
 **Important**: Credentials (`client_id`, `client_secret`, `redirect_uri`) are **not required** in global configuration. You can pass them per-instance, which is especially useful for multi-tenant applications.
 
+### Response Objects (Optional)
+
+By default, API responses are returned as raw hashes. You can optionally enable response objects for a better developer experience with typed objects and convenient attribute access:
+
+```ruby
+# Enable response objects globally
+NationbuilderApi.configure do |config|
+  config.wrap_responses = true
+end
+
+# Or per-client instance
+client = NationbuilderApi::Client.new(
+  # ... credentials ...
+  wrap_responses: true
+)
+
+# With response objects enabled
+person = client.people.show(123)
+person.first_name  # => "John" (method access)
+person.full_name   # => "John Doe" (computed attribute)
+person[:data]      # => {...} (still supports hash access for backward compatibility)
+person.to_h        # => original hash
+
+# Works with both V1 and V2 API responses
+```
+
+**Benefits of response objects:**
+- Convenient method access (`person.first_name` instead of `person[:data][:attributes][:first_name]`)
+- Computed attributes (`person.full_name`)
+- Backward compatible (still supports hash access via `[]`, `dig`, etc.)
+- Type safety and better IDE autocomplete
+
+**Note**: Response objects default to `false` for backward compatibility. Enable when you're ready to migrate.
+
 ## Multi-Tenant Usage
 
 The gem is designed to support multi-tenant applications where you manage multiple NationBuilder accounts, each with their own OAuth credentials. This is the recommended pattern for SaaS applications.

@@ -10,3 +10,6 @@
 # rspec failure tracking
 .rspec_status
 *.gem
+
+# Beads issue tracker (removed 2026-02-22, tracking moved to Obsidian)
+.beads/

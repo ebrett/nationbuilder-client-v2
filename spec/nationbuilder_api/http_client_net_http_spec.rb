@@ -103,6 +103,45 @@ RSpec.describe NationbuilderApi::HttpClient, "Net::HTTP implementation" do
     end
   end
 
+  describe "network error resilience" do
+    let(:error_url) { "https://api.nationbuilder.com/v2/people" }
+
+    {
+      "Net::OpenTimeout" => Net::OpenTimeout,
+      "Net::ReadTimeout" => Net::ReadTimeout,
+      "Errno::ECONNREFUSED" => Errno::ECONNREFUSED,
+      "SocketError" => SocketError,
+      "OpenSSL::SSL::SSLError" => OpenSSL::SSL::SSLError
+    }.each do |error_name, error_class|
+      context "when #{error_name} is raised" do
+        before do
+          stub_request(:get, error_url).to_raise(error_class)
+        end
+
+        it "wraps as NetworkError (not the original #{error_name})" do
+          expect {
+            http_client.get("/people")
+          }.to raise_error(NationbuilderApi::NetworkError)
+        end
+
+        it "includes HTTP method and path in the error message" do
+          expect {
+            http_client.get("/people")
+          }.to raise_error(NationbuilderApi::NetworkError, /Network error for GET \/people/)
+        end
+      end
+    end
+
+    it "includes method and path for POST requests" do
+      stub_request(:post, "https://api.nationbuilder.com/v2/people")
+        .to_raise(Net::ReadTimeout)
+
+      expect {
+        http_client.post("/people", body: {first_name: "John"})
+      }.to raise_error(NationbuilderApi::NetworkError, /Network error for POST \/people/)
+    end
+  end
+
   describe "response wrapping" do
     it "wraps responses with ResponseWrapper" do
       stub_request(:get, "https://api.nationbuilder.com/v2/people")

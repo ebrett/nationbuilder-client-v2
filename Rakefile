@@ -5,4 +5,9 @@ require "rspec/core/rake_task"
 
 RSpec::Core::RakeTask.new(:spec)
 
+desc "Run StandardRB linter"
+task :lint do
+  sh "bundle exec standardrb"
+end
+
 task default: :spec

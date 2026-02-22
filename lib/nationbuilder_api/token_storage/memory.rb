@@ -6,7 +6,12 @@ module NationbuilderApi
     # Useful for testing and development
     # Not suitable for production use (tokens lost on restart)
     class Memory < Base
+      PRODUCTION_WARNING = "TokenStorage::Memory is not suitable for production use. " \
+        "Tokens are lost on process restart. " \
+        "Use TokenStorage::Redis or TokenStorage::ActiveRecord instead."
+
       def initialize
+        warn_if_production!
         @tokens = {}
         @mutex = Mutex.new
       end
@@ -59,6 +64,15 @@ module NationbuilderApi
         @mutex.synchronize do
           @tokens.clear
         end
+      end
+
+      private
+
+      def warn_if_production!
+        return unless defined?(Rails) && Rails.env.production?
+
+        logger = NationbuilderApi.logger || NationbuilderApi::Logger.new
+        logger.warn(PRODUCTION_WARNING)
       end
     end
   end

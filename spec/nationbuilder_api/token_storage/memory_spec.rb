@@ -19,6 +19,54 @@ RSpec.describe NationbuilderApi::TokenStorage::Memory do
     end
   end
 
+  describe "production warning" do
+    let(:mock_logger) { instance_double(NationbuilderApi::Logger, warn: nil) }
+
+    context "when Rails is not defined" do
+      it "does not warn" do
+        expect(NationbuilderApi::Logger).not_to receive(:new)
+        described_class.new
+      end
+    end
+
+    context "when Rails is defined but not production" do
+      before do
+        stub_const("Rails", double("Rails", env: double("env", production?: false)))
+      end
+
+      it "does not warn" do
+        allow(NationbuilderApi).to receive(:logger).and_return(mock_logger)
+        expect(mock_logger).not_to receive(:warn)
+        described_class.new
+      end
+    end
+
+    context "when Rails production environment" do
+      before do
+        stub_const("Rails", double("Rails", env: double("env", production?: true)))
+      end
+
+      it "warns via NationbuilderApi.logger when set" do
+        allow(NationbuilderApi).to receive(:logger).and_return(mock_logger)
+        expect(mock_logger).to receive(:warn).with(include("not suitable for production"))
+        described_class.new
+      end
+
+      it "warns via a new Logger when NationbuilderApi.logger is nil" do
+        allow(NationbuilderApi).to receive(:logger).and_return(nil)
+        allow(NationbuilderApi::Logger).to receive(:new).and_return(mock_logger)
+        expect(mock_logger).to receive(:warn).with(include("not suitable for production"))
+        described_class.new
+      end
+
+      it "does not raise an exception" do
+        allow(NationbuilderApi).to receive(:logger).and_return(mock_logger)
+        allow(mock_logger).to receive(:warn)
+        expect { described_class.new }.not_to raise_error
+      end
+    end
+  end
+
   describe "#store_token" do
     it "stores token data" do
       adapter.store_token(identifier, token_data)

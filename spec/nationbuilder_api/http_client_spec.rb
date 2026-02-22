@@ -142,4 +142,45 @@ RSpec.describe NationbuilderApi::HttpClient do
       http_client.get("/people")
     end
   end
+
+  describe "rate limit header logging" do
+    let(:mock_logger) { instance_double(NationbuilderApi::Logger, log_request: nil, log_response: nil) }
+    let(:http_client) { described_class.new(config: config, token_adapter: token_adapter, identifier: identifier, logger: mock_logger) }
+
+    it "logs remaining and reset when both headers present" do
+      stub_request(:get, "https://api.nationbuilder.com/v2/people")
+        .to_return(
+          status: 200,
+          body: "{}",
+          headers: {"X-RateLimit-Remaining" => "42", "X-RateLimit-Reset" => "1700000000"}
+        )
+
+      expect(mock_logger).to receive(:info).with(include("remaining=42", "reset=1700000000"))
+      http_client.get("/people")
+    end
+
+    it "logs only remaining when reset header absent" do
+      stub_request(:get, "https://api.nationbuilder.com/v2/people")
+        .to_return(status: 200, body: "{}", headers: {"X-RateLimit-Remaining" => "10"})
+
+      expect(mock_logger).to receive(:info).with(include("remaining=10"))
+      http_client.get("/people")
+    end
+
+    it "does not log when no rate limit headers present" do
+      stub_request(:get, "https://api.nationbuilder.com/v2/people")
+        .to_return(status: 200, body: "{}", headers: {"Content-Type" => "application/json"})
+
+      expect(mock_logger).not_to receive(:info).with(include("Rate limit"))
+      http_client.get("/people")
+    end
+
+    it "does not raise on unexpected header values" do
+      stub_request(:get, "https://api.nationbuilder.com/v2/people")
+        .to_return(status: 200, body: "{}", headers: {"X-RateLimit-Remaining" => ""})
+
+      allow(mock_logger).to receive(:info)
+      expect { http_client.get("/people") }.not_to raise_error
+    end
+  end
 end

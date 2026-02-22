@@ -1,0 +1,11 @@
+# StandardRB configuration
+# https://github.com/standardrb/standard
+
+# Target the minimum supported Ruby version (matches gemspec required_ruby_version)
+ruby_version: 3.2
+
+# Exclude generated, vendor, and non-source directories
+ignore:
+  - "pkg/**/*"
+  - "coverage/**/*"
+  - "sig/**/*"

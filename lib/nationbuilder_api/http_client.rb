@@ -86,6 +86,7 @@ module NationbuilderApi
 
       duration_ms = ((Time.now - start_time) * 1000).round
       @logger.log_response(response.status, duration_ms, headers: response.headers.to_h, body: response.body.to_s)
+      log_rate_limit_headers(response.headers)
 
       handle_response(response, method, path)
     rescue Net::OpenTimeout, Net::ReadTimeout, SocketError, OpenSSL::SSL::SSLError, Errno::ECONNREFUSED => e
@@ -229,6 +230,17 @@ module NationbuilderApi
       else
         raise Error.new("HTTP error #{response.status} for #{request_context}", response: response)
       end
+    end
+
+    def log_rate_limit_headers(headers)
+      remaining = Array(headers["x-ratelimit-remaining"]).first
+      reset = Array(headers["x-ratelimit-reset"]).first
+      return unless remaining || reset
+
+      parts = []
+      parts << "remaining=#{remaining}" if remaining
+      parts << "reset=#{reset}" if reset
+      @logger.info("Rate limit: #{parts.join(", ")}")
     end
 
     def parse_json_response(response)

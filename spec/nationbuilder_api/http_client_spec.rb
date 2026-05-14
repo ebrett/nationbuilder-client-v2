@@ -183,4 +183,64 @@ RSpec.describe NationbuilderApi::HttpClient do
       expect { http_client.get("/people") }.not_to raise_error
     end
   end
+
+  describe "query parameter encoding" do
+    # Regression for the nested-filter bug: URI.encode_www_form does not recurse
+    # into nested hashes; NationBuilder's JSON:API requires `filter[key]=value`
+    # bracket form. Without flattening, NB returns HTTP 500 for any filtered call.
+    it "flattens a one-level nested filter hash into bracket form" do
+      stub_request(:get, "https://api.nationbuilder.com/v2/signups")
+        .with(query: {"filter[email]" => "john@example.com"})
+        .to_return(status: 200, body: '{"data": []}', headers: {"Content-Type" => "application/json"})
+
+      http_client.get("/signups", params: {filter: {email: "john@example.com"}})
+
+      expect(WebMock).to have_requested(:get, "https://api.nationbuilder.com/v2/signups")
+        .with(query: {"filter[email]" => "john@example.com"})
+    end
+
+    it "flattens deeply nested params into bracket form" do
+      stub_request(:get, "https://api.nationbuilder.com/v2/signups")
+        .with(query: {"a[b][c]" => "1"})
+        .to_return(status: 200, body: '{"data": []}', headers: {"Content-Type" => "application/json"})
+
+      http_client.get("/signups", params: {a: {b: {c: 1}}})
+
+      expect(WebMock).to have_requested(:get, "https://api.nationbuilder.com/v2/signups")
+        .with(query: {"a[b][c]" => "1"})
+    end
+
+    it "leaves flat (non-nested) params unchanged" do
+      stub_request(:get, "https://api.nationbuilder.com/v2/signups")
+        .with(query: {"page" => "2", "per_page" => "50"})
+        .to_return(status: 200, body: '{"data": []}', headers: {"Content-Type" => "application/json"})
+
+      http_client.get("/signups", params: {page: 2, per_page: 50})
+
+      expect(WebMock).to have_requested(:get, "https://api.nationbuilder.com/v2/signups")
+        .with(query: {"page" => "2", "per_page" => "50"})
+    end
+
+    it "handles mixed flat and nested params" do
+      stub_request(:get, "https://api.nationbuilder.com/v2/event_rsvps")
+        .with(query: {"include" => "event", "filter[person_id]" => "123"})
+        .to_return(status: 200, body: '{"data": []}', headers: {"Content-Type" => "application/json"})
+
+      http_client.get("/event_rsvps", params: {include: "event", filter: {person_id: 123}})
+
+      expect(WebMock).to have_requested(:get, "https://api.nationbuilder.com/v2/event_rsvps")
+        .with(query: {"include" => "event", "filter[person_id]" => "123"})
+    end
+
+    it "encodes JSON:API page object into bracket form" do
+      stub_request(:get, "https://api.nationbuilder.com/v2/signups")
+        .with(query: {"page[number]" => "2", "page[size]" => "50"})
+        .to_return(status: 200, body: '{"data": []}', headers: {"Content-Type" => "application/json"})
+
+      http_client.get("/signups", params: {page: {number: 2, size: 50}})
+
+      expect(WebMock).to have_requested(:get, "https://api.nationbuilder.com/v2/signups")
+        .with(query: {"page[number]" => "2", "page[size]" => "50"})
+    end
+  end
 end

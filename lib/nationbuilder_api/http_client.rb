@@ -98,7 +98,7 @@ module NationbuilderApi
 
       # Add query parameters for GET requests
       if method == :get && params.any?
-        uri.query = URI.encode_www_form(params)
+        uri.query = URI.encode_www_form(flatten_query_params(params))
       end
 
       # Create and configure HTTP client
@@ -251,6 +251,23 @@ module NationbuilderApi
     rescue JSON::ParserError => e
       @logger.warn("Failed to parse JSON response: #{e.message}")
       body
+    end
+
+    # Flatten nested hash params into JSON:API bracket form.
+    # { filter: { email: "x" } }  =>  [["filter[email]", "x"]]
+    # { a: { b: { c: 1 } } }      =>  [["a[b][c]", 1]]
+    # { page: 1, filter: { id: 2 } } => [["page", 1], ["filter[id]", 2]]
+    # NationBuilder's API (and JSON:API generally) requires bracket form;
+    # URI.encode_www_form does not recurse into nested hashes on its own.
+    def flatten_query_params(params, prefix = nil)
+      params.each_with_object([]) do |(key, value), acc|
+        full_key = prefix ? "#{prefix}[#{key}]" : key.to_s
+        if value.is_a?(Hash)
+          acc.concat(flatten_query_params(value, full_key))
+        else
+          acc << [full_key, value]
+        end
+      end
     end
   end
 end

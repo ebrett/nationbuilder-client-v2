@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Nested query-parameter encoding in `HttpClient`. `URI.encode_www_form` does
+  not recurse into nested hashes, so `client.people.list(filter: {email: "x"})`
+  was sending the literal Ruby hash inspect (`filter={email: "x"}`) instead of
+  the JSON:API bracket form (`filter[email]=x`). NationBuilder responded with
+  HTTP 500 to any filtered list/search call. `execute_request` now flattens
+  nested hashes via a new private `flatten_query_params` helper before
+  encoding. All resources passing nested params (notably `People#list` and
+  `People#search`) now work without each resource having to flatten on its own.
+
 ## [0.1.0] - TBD
 
 ### Added
